@@ -1,0 +1,15 @@
+{
+  "name": "taste-library",
+  "version": "1.0.0",
+  "description": "Personal design reference library",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.3",
+    "multer": "^2.0.0",
+    "archiver": "^6.0.1",
+    "uuid": "^9.0.0"
+  }
+}
