@@ -7,6 +7,7 @@ const state = {
   boards: [],
   tags: [],
   types: [],
+  foundVia: [],
   filters: { q: '', type: '', tags: [], board: '', favorite: false, tagMode: 'any' },
   bulkMode: false,
   selectedIds: new Set(),
@@ -61,6 +62,10 @@ async function init() {
   setupBoardPicker();
   setupSettings();
   setupPasteImage();
+  setupDynamicSelect(document.getElementById('f-type'), () => state.types, ensureType, 'New type name:');
+  setupDynamicSelect(document.getElementById('f-found-via'), () => state.foundVia, ensureFoundVia, 'New "found via" name:');
+  setupDynamicSelect(document.getElementById('detail-type'), () => state.types, ensureType, 'New type name:');
+  setupDynamicSelect(document.getElementById('detail-found-via'), () => state.foundVia, ensureFoundVia, 'New "found via" name:');
   renderBrowse();
   refreshStats();
 }
@@ -83,33 +88,72 @@ function setupPasteImage() {
 }
 
 async function loadAll() {
-  [state.entries, state.boards, state.tags, state.types] = await Promise.all([
+  [state.entries, state.boards, state.tags, state.types, state.foundVia] = await Promise.all([
     api.get('/api/entries'),
     api.get('/api/boards'),
     api.get('/api/tags'),
-    api.get('/api/types')
+    api.get('/api/types'),
+    api.get('/api/found-via')
   ]);
-  renderTypeDatalist();
 }
 
-// ═══════════════════════════════════════════ TYPES ══
-function renderTypeDatalist() {
-  const list = document.getElementById('type-datalist');
-  list.innerHTML = '';
-  [...state.types].sort((a, b) => a.localeCompare(b)).forEach(t => {
+// ═══════════════════════════════════════════ DYNAMIC DROPDOWNS (Type / Found via) ══
+// Populates a <select> as: "+ Add New" pinned first, then "— None —", then
+// all options sorted alphabetically (the entry's current value is merged in
+// so editing an entry never silently drops a value that isn't in the list yet).
+function populateSelect(selectEl, options, currentValue) {
+  const merged = [...options];
+  if (currentValue && !merged.some(o => o.toLowerCase() === currentValue.toLowerCase())) merged.push(currentValue);
+  merged.sort((a, b) => a.localeCompare(b));
+
+  selectEl.innerHTML = '';
+  const addNew = document.createElement('option');
+  addNew.value = '__add_new__';
+  addNew.textContent = '+ Add New';
+  selectEl.appendChild(addNew);
+  const none = document.createElement('option');
+  none.value = '';
+  none.textContent = '— None —';
+  selectEl.appendChild(none);
+  merged.forEach(v => {
     const opt = document.createElement('option');
-    opt.value = t;
-    list.appendChild(opt);
+    opt.value = v;
+    opt.textContent = v;
+    selectEl.appendChild(opt);
+  });
+
+  selectEl.value = currentValue || '';
+  selectEl.dataset.prev = selectEl.value;
+}
+
+// Wires the "+ Add New" sentinel: prompts for a new value, persists it, and
+// re-populates the select with it chosen. Reverts to the prior value on cancel.
+function setupDynamicSelect(selectEl, getOptions, ensureFn, promptLabel) {
+  selectEl.addEventListener('change', async () => {
+    if (selectEl.value !== '__add_new__') { selectEl.dataset.prev = selectEl.value; return; }
+    const name = (prompt(promptLabel) || '').trim();
+    if (name) {
+      await ensureFn(name);
+      populateSelect(selectEl, getOptions(), name);
+    } else {
+      selectEl.value = selectEl.dataset.prev || '';
+    }
   });
 }
 
-// Persists a newly-typed type value (mirrors how new style tags are created).
+// Persists a newly-added type value (mirrors how new style tags are created).
 async function ensureType(value) {
   const val = (value || '').trim();
   if (!val || state.types.some(t => t.toLowerCase() === val.toLowerCase())) return;
   state.types.push(val);
-  renderTypeDatalist();
   try { await api.post('/api/types', { name: val }); } catch { /* already exists server-side */ }
+}
+
+async function ensureFoundVia(value) {
+  const val = (value || '').trim();
+  if (!val || state.foundVia.some(t => t.toLowerCase() === val.toLowerCase())) return;
+  state.foundVia.push(val);
+  try { await api.post('/api/found-via', { name: val }); } catch { /* already exists server-side */ }
 }
 
 // ═══════════════════════════════════════════ NAVIGATION ══
@@ -143,7 +187,7 @@ function navigate(view) {
 // ═══════════════════════════════════════════ THEME ══
 function setupTheme() {
   const root = document.documentElement;
-  const saved = localStorage.getItem('tl-theme') || 'dark';
+  const saved = localStorage.getItem('omniview-theme') || 'dark';
   setTheme(saved);
 
   document.getElementById('theme-toggle').addEventListener('click', () => {
@@ -156,7 +200,7 @@ function setupTheme() {
 
 function setTheme(t) {
   document.documentElement.dataset.theme = t;
-  localStorage.setItem('tl-theme', t);
+  localStorage.setItem('omniview-theme', t);
   document.querySelectorAll('.theme-btn').forEach(b => b.classList.toggle('active', b.dataset.t === t));
 }
 
@@ -338,7 +382,7 @@ function createCard(entry, clickOpensDetail) {
   body.className = 'card-body';
   const urlEl = document.createElement('div');
   urlEl.className = 'card-url';
-  urlEl.textContent = cleanUrl(entry.url);
+  urlEl.textContent = entry.title || cleanUrl(entry.url);
   urlEl.title = entry.url;
   body.appendChild(urlEl);
 
@@ -598,10 +642,11 @@ function openAddForm(entry) {
   state.pendingScreenshotFile = null;
 
   // Reset form
+  document.getElementById('f-title').value = entry ? (entry.title || '') : '';
   document.getElementById('f-url').value = entry ? entry.url : '';
-  document.getElementById('f-type').value = entry ? (entry.type || '') : '';
+  populateSelect(document.getElementById('f-type'), state.types, entry ? (entry.type || '') : '');
   document.getElementById('f-color').value = entry ? (entry.color || '') : '';
-  document.getElementById('f-found-via').value = entry ? (entry.found_via || '') : '';
+  populateSelect(document.getElementById('f-found-via'), state.foundVia, entry ? (entry.found_via || '') : '');
   document.getElementById('f-note').value = entry ? (entry.note || '') : '';
   document.getElementById('f-favorite').checked = entry ? !!entry.favorite : false;
   document.getElementById('edit-entry-id').value = entry ? entry.id : '';
@@ -692,14 +737,12 @@ function setupAddForm() {
     const url = document.getElementById('f-url').value.trim();
     if (!url) return;
 
-    const type = document.getElementById('f-type').value.trim();
-    await ensureType(type);
-
     const payload = {
+      title: document.getElementById('f-title').value.trim(),
       url,
-      type: type || null,
+      type: document.getElementById('f-type').value || null,
       color: document.getElementById('f-color').value || null,
-      found_via: document.getElementById('f-found-via').value.trim(),
+      found_via: document.getElementById('f-found-via').value,
       note: document.getElementById('f-note').value.trim(),
       favorite: document.getElementById('f-favorite').checked,
       style_tags: formSelectedTags,
@@ -818,7 +861,25 @@ function renderTagDropdown(input, dropdown, tagsArr, onUpdate) {
     .sort((a, b) => a.localeCompare(b));
   dropdown.innerHTML = '';
 
-  if (available.length === 0 && !q) { dropdown.style.display = 'none'; return; }
+  // "+ Add New" is always pinned first; typed text (if any) is offered as the default name.
+  const addNew = document.createElement('div');
+  addNew.className = 'tag-dropdown-item create';
+  addNew.textContent = '+ Add New';
+  addNew.addEventListener('mousedown', e => {
+    e.preventDefault();
+    const val = (prompt('New style tag name:', input.value.trim()) || '').trim();
+    if (val && !tagsArr.includes(val)) {
+      tagsArr.push(val);
+      if (!state.tags.includes(val)) {
+        state.tags.push(val);
+        api.post('/api/tags', { name: val }).catch(() => {});
+      }
+    }
+    input.value = '';
+    dropdown.style.display = 'none';
+    onUpdate();
+  });
+  dropdown.appendChild(addNew);
 
   available.forEach(tag => {
     const item = document.createElement('div');
@@ -834,29 +895,7 @@ function renderTagDropdown(input, dropdown, tagsArr, onUpdate) {
     dropdown.appendChild(item);
   });
 
-  // Create option
-  if (q && !state.tags.map(t => t.toLowerCase()).includes(q)) {
-    const item = document.createElement('div');
-    item.className = 'tag-dropdown-item create';
-    item.textContent = `+ Create "${input.value.trim()}"`;
-    item.addEventListener('mousedown', e => {
-      e.preventDefault();
-      const val = input.value.trim();
-      if (!tagsArr.includes(val)) {
-        tagsArr.push(val);
-        if (!state.tags.includes(val)) {
-          state.tags.push(val);
-          api.post('/api/tags', { name: val }).catch(() => {});
-        }
-        input.value = '';
-        dropdown.style.display = 'none';
-        onUpdate();
-      }
-    });
-    dropdown.appendChild(item);
-  }
-
-  dropdown.style.display = dropdown.children.length > 0 ? '' : 'none';
+  dropdown.style.display = '';
 }
 
 // ═══════════════════════════════════════════ DETAIL MODAL ══
@@ -898,13 +937,12 @@ function setupDetailModal() {
 
   document.getElementById('detail-save').addEventListener('click', async () => {
     if (!state.detailEntry) return;
-    const type = document.getElementById('detail-type').value.trim();
-    await ensureType(type);
     const payload = {
+      title: document.getElementById('detail-title').value.trim(),
       url: state.detailEntry.url,
-      type: type || null,
+      type: document.getElementById('detail-type').value || null,
       color: document.getElementById('detail-color').value || null,
-      found_via: document.getElementById('detail-found-via').value.trim(),
+      found_via: document.getElementById('detail-found-via').value,
       note: document.getElementById('detail-note').value.trim(),
       favorite: state.detailEntry.favorite,
       style_tags: detailTags,
@@ -942,9 +980,10 @@ async function openDetail(id) {
   document.getElementById('detail-url').href = entry.url;
   document.getElementById('detail-url').textContent = entry.url;
   document.getElementById('detail-fav').classList.toggle('is-fav', !!entry.favorite);
-  document.getElementById('detail-type').value = entry.type || '';
+  document.getElementById('detail-title').value = entry.title || '';
+  populateSelect(document.getElementById('detail-type'), state.types, entry.type || '');
   document.getElementById('detail-color').value = entry.color || '';
-  document.getElementById('detail-found-via').value = entry.found_via || '';
+  populateSelect(document.getElementById('detail-found-via'), state.foundVia, entry.found_via || '');
   document.getElementById('detail-note').value = entry.note || '';
   document.getElementById('detail-date').textContent = new Date(entry.date_added).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 

@@ -1,4 +1,4 @@
-# Taste Library
+# Omniview
 
 A personal design reference tool for collecting and browsing inspiring web and mobile designs.
 
@@ -6,7 +6,7 @@ A personal design reference tool for collecting and browsing inspiring web and m
 
 ## What it does
 
-Taste Library centralizes your scattered design inspiration into one searchable local library. Screenshot a website or mobile app you love, add it to your collection with metadata and style tags, then browse and filter your growing library whenever you need design references.
+Omniview centralizes your scattered design inspiration into one searchable local library. Screenshot a website or mobile app you love, add it to your collection with metadata and style tags, then browse and filter your growing library whenever you need design references.
 
 ## Features
 
@@ -51,7 +51,7 @@ Taste Library centralizes your scattered design inspiration into one searchable 
 
 ## Single-User Design
 
-Taste Library is built for one person on one machine. No multi-user features, no authentication, no deployment—just a personal tool that runs when you need it.
+Omniview is built for one person on one machine. No multi-user features, no authentication, no deployment—just a personal tool that runs when you need it.
 
 ---
 

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Taste Library</title>
+  <title>Omniview</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Fraunces:ital,wght@0,300;0,400;1,300&display=swap">
   <link rel="stylesheet" href="styles.css">
@@ -22,7 +22,7 @@
         <rect x="12" y="13" width="9" height="8" rx="2" fill="currentColor" opacity="0.75"/>
       </svg>
     </div>
-    <span class="brand-name">Taste Library</span>
+    <span class="brand-name">Omniview</span>
   </div>
 
   <nav class="sidebar-nav">
@@ -89,7 +89,6 @@
           <div class="chip-row" id="filter-type">
             <button class="chip active" data-value="">All</button>
             <button class="chip" data-value="Website">Website</button>
-            <button class="chip" data-value="Mobile App">Mobile App</button>
             <button class="chip" data-value="Web App">Web App</button>
           </div>
         </div>
@@ -210,6 +209,11 @@
       <!-- Fields -->
       <div class="form-grid">
         <div class="form-group form-group-full">
+          <label for="f-title">Title</label>
+          <input type="text" id="f-title" placeholder="e.g. Google">
+        </div>
+
+        <div class="form-group form-group-full">
           <label for="f-url">URL <span class="required">*</span></label>
           <input type="url" id="f-url" placeholder="https://example.com" required>
           <div class="dupe-warning" id="dupe-warning" style="display:none">⚠ This URL is already in your library.</div>
@@ -217,8 +221,7 @@
 
         <div class="form-group">
           <label for="f-type">Type</label>
-          <input type="text" id="f-type" list="type-datalist" placeholder="Select or type a new type…" autocomplete="off">
-          <datalist id="type-datalist"></datalist>
+          <select id="f-type"></select>
         </div>
 
         <div class="form-group">
@@ -242,7 +245,7 @@
 
         <div class="form-group">
           <label for="f-found-via">Found via</label>
-          <input type="text" id="f-found-via" placeholder="Twitter, Dribbble, referral…">
+          <select id="f-found-via"></select>
         </div>
 
         <div class="form-group form-group-full">
@@ -354,8 +357,13 @@
         </div>
 
         <div class="detail-field">
+          <span class="detail-label">Title</span>
+          <input type="text" id="detail-title" class="detail-input" placeholder="e.g. Google">
+        </div>
+
+        <div class="detail-field">
           <span class="detail-label">Type</span>
-          <input type="text" id="detail-type" class="detail-input" list="type-datalist" placeholder="Select or type a new type…" autocomplete="off">
+          <select id="detail-type" class="detail-select"></select>
         </div>
 
         <div class="detail-field">
@@ -395,7 +403,7 @@
 
         <div class="detail-field">
           <span class="detail-label">Found via</span>
-          <input type="text" id="detail-found-via" class="detail-input" placeholder="—">
+          <select id="detail-found-via" class="detail-select"></select>
         </div>
 
         <div class="detail-field">

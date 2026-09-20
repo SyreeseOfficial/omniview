@@ -28,7 +28,8 @@ const DEFAULT_DB = {
     'Futuristic', 'Hand-drawn', 'Geometric', 'Organic', 'Bold',
     'Clean', 'Dense', 'Spacious', 'Colorful', 'Muted', 'Illustrated'
   ],
-  types: ['Website', 'Mobile App', 'Web App']
+  types: ['Website', 'Web App'],
+  foundVia: ['Dribbble', 'Google', 'Instagram', 'Newsletter', 'Pinterest', 'Referral', 'Twitter/X']
 };
 
 function readDB() {
@@ -40,6 +41,7 @@ function readDB() {
   }
   // Back-fill fields added after this file was first written
   if (!data.types) data.types = [...DEFAULT_DB.types];
+  if (!data.foundVia) data.foundVia = [...DEFAULT_DB.foundVia];
   return data;
 }
 
@@ -112,7 +114,7 @@ app.get('/api/entries/:id', (req, res) => {
 // Create entry
 app.post('/api/entries', (req, res) => {
   const db = readDB();
-  const { url, type, color, style_tags, note, found_via, favorite, boards } = req.body;
+  const { url, title, type, color, style_tags, note, found_via, favorite, boards } = req.body;
   if (!url) return res.status(400).json({ error: 'url is required' });
 
   const existing = db.entries.find(e => e.url === url);
@@ -121,6 +123,7 @@ app.post('/api/entries', (req, res) => {
   const entry = {
     id: uuidv4(),
     url,
+    title: title || '',
     screenshot: null,
     type: type || null,
     color: color || null,
@@ -143,7 +146,7 @@ app.put('/api/entries/:id', (req, res) => {
   const idx = db.entries.findIndex(e => e.id === req.params.id);
   if (idx === -1) return res.status(404).json({ error: 'Not found' });
 
-  const allowed = ['url', 'type', 'color', 'style_tags', 'note', 'found_via', 'favorite', 'boards'];
+  const allowed = ['url', 'title', 'type', 'color', 'style_tags', 'note', 'found_via', 'favorite', 'boards'];
   allowed.forEach(k => {
     if (req.body[k] !== undefined) db.entries[idx][k] = req.body[k];
   });
@@ -322,17 +325,35 @@ app.post('/api/types', (req, res) => {
   res.status(201).json({ types: db.types });
 });
 
+// ─── Found Via ────────────────────────────────────────────────────────────────
+app.get('/api/found-via', (req, res) => {
+  res.json(readDB().foundVia);
+});
+
+app.post('/api/found-via', (req, res) => {
+  const { name } = req.body;
+  if (!name) return res.status(400).json({ error: 'name required' });
+  const db = readDB();
+  const normalized = name.trim();
+  if (db.foundVia.map(t => t.toLowerCase()).includes(normalized.toLowerCase())) {
+    return res.status(409).json({ error: 'Found via option already exists' });
+  }
+  db.foundVia.push(normalized);
+  writeDB(db);
+  res.status(201).json({ foundVia: db.foundVia });
+});
+
 // ─── Export ───────────────────────────────────────────────────────────────────
 app.get('/api/export', (req, res) => {
   const db = readDB();
   const fmt = req.query.format || 'json';
 
   if (fmt === 'json') {
-    res.setHeader('Content-Disposition', 'attachment; filename="taste-library-export.json"');
+    res.setHeader('Content-Disposition', 'attachment; filename="omniview-export.json"');
     res.json(db);
   } else {
     // ZIP with JSON + screenshots
-    res.setHeader('Content-Disposition', 'attachment; filename="taste-library-export.zip"');
+    res.setHeader('Content-Disposition', 'attachment; filename="omniview-export.zip"');
     res.setHeader('Content-Type', 'application/zip');
     const archive = archiver('zip');
     archive.pipe(res);
@@ -376,5 +397,5 @@ app.get('/api/stats', (req, res) => {
 
 // ─── Start ────────────────────────────────────────────────────────────────────
 app.listen(PORT, '127.0.0.1', () => {
-  console.log(`\n🎨 Taste Library running at http://localhost:${PORT}\n`);
+  console.log(`\n🎨 Omniview running at http://localhost:${PORT}\n`);
 });
