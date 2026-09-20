@@ -84,37 +84,31 @@
 
       <!-- Filters -->
       <div class="filter-bar">
-        <div class="filter-group">
-          <label class="filter-label">Type</label>
-          <div class="chip-row" id="filter-type">
-            <button class="chip active" data-value="">All</button>
-            <button class="chip" data-value="Website">Website</button>
-            <button class="chip" data-value="Web App">Web App</button>
-          </div>
-        </div>
+        <select class="filter-select" id="filter-type"></select>
 
-        <div class="filter-group">
-          <label class="filter-label">
+        <details class="filter-dropdown" id="filter-tags-dd">
+          <summary>
             Style Tags
-            <span class="tag-mode-toggle" id="tag-mode-toggle" style="display:none">
-              <button class="tag-mode-btn active" data-mode="any">ANY</button>
-              <button class="tag-mode-btn" data-mode="all">ALL</button>
-            </span>
-          </label>
-          <div class="chip-row chip-row-tags" id="filter-tags"></div>
-        </div>
-
-        <div class="filter-group" id="filter-boards-group">
-          <label class="filter-label">Board</label>
-          <div class="chip-row" id="filter-boards"></div>
-        </div>
-
-        <div class="filter-group">
-          <label class="filter-label">Quick</label>
-          <div class="chip-row">
-            <button class="chip chip-fav" id="filter-fav">♥ Favorites</button>
+            <span class="filter-count" id="filter-tags-count" style="display:none"></span>
+            <svg class="filter-caret" width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 4l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </summary>
+          <div class="filter-panel">
+            <div class="filter-panel-head">
+              <span class="tag-mode-toggle" id="tag-mode-toggle" style="display:none">
+                <button class="tag-mode-btn active" data-mode="any">ANY</button>
+                <button class="tag-mode-btn" data-mode="all">ALL</button>
+              </span>
+              <button class="filter-panel-clear" id="filter-tags-clear">Clear</button>
+            </div>
+            <div class="filter-check-list" id="filter-tags"></div>
           </div>
-        </div>
+        </details>
+
+        <select class="filter-select" id="filter-boards"></select>
+
+        <button class="chip chip-fav" id="filter-fav">♥ Favorites</button>
+
+        <button class="filter-clear" id="filter-clear" style="display:none">Clear all ✕</button>
       </div>
 
       <!-- Bulk bar -->

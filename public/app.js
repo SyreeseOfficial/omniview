@@ -223,20 +223,18 @@ function setupSearch() {
 
 // ═══════════════════════════════════════════ FILTERS ══
 function setupFilters() {
-  // Type chips
-  document.getElementById('filter-type').addEventListener('click', e => {
-    const chip = e.target.closest('.chip');
-    if (!chip) return;
-    document.querySelectorAll('#filter-type .chip').forEach(c => c.classList.remove('active'));
-    chip.classList.add('active');
-    state.filters.type = chip.dataset.value;
+  document.getElementById('filter-type').addEventListener('change', e => {
+    state.filters.type = e.target.value;
     renderBrowse();
   });
 
-  // Favorites chip
+  document.getElementById('filter-boards').addEventListener('change', e => {
+    state.filters.board = e.target.value;
+    renderBrowse();
+  });
+
   document.getElementById('filter-fav').addEventListener('click', () => {
     state.filters.favorite = !state.filters.favorite;
-    document.getElementById('filter-fav').classList.toggle('active', state.filters.favorite);
     renderBrowse();
   });
 
@@ -248,50 +246,78 @@ function setupFilters() {
     document.querySelectorAll('.tag-mode-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === state.filters.tagMode));
     renderBrowse();
   });
+
+  document.getElementById('filter-tags-clear').addEventListener('click', () => {
+    state.filters.tags = [];
+    renderBrowse();
+  });
+
+  document.getElementById('filter-clear').addEventListener('click', () => {
+    state.filters = { ...state.filters, type: '', tags: [], board: '', favorite: false };
+    renderBrowse();
+  });
+
+  // Close the tag panel when clicking outside it
+  document.addEventListener('click', e => {
+    const dd = document.getElementById('filter-tags-dd');
+    if (dd.open && !dd.contains(e.target)) dd.open = false;
+  });
+}
+
+function renderTypeFilter() {
+  const sel = document.getElementById('filter-type');
+  sel.innerHTML = '<option value="">All Types</option>';
+  [...state.types].sort((a, b) => a.localeCompare(b)).forEach(t => {
+    const opt = document.createElement('option');
+    opt.value = t;
+    opt.textContent = t;
+    sel.appendChild(opt);
+  });
+  sel.value = state.filters.type;
+  sel.classList.toggle('active', !!state.filters.type);
 }
 
 function renderTagFilters() {
   const wrap = document.getElementById('filter-tags');
   wrap.innerHTML = '';
   [...state.tags].sort((a, b) => a.localeCompare(b)).forEach(tag => {
-    const chip = document.createElement('button');
-    chip.className = 'chip' + (state.filters.tags.includes(tag) ? ' active' : '');
-    chip.textContent = tag;
-    chip.addEventListener('click', () => {
-      if (state.filters.tags.includes(tag)) {
-        state.filters.tags = state.filters.tags.filter(t => t !== tag);
-      } else {
-        state.filters.tags.push(tag);
-      }
-      renderTagFilters();
-      // Show/hide tag mode toggle
-      document.getElementById('tag-mode-toggle').style.display = state.filters.tags.length > 1 ? '' : 'none';
+    const label = document.createElement('label');
+    const box = document.createElement('input');
+    box.type = 'checkbox';
+    box.checked = state.filters.tags.includes(tag);
+    box.addEventListener('change', () => {
+      state.filters.tags = box.checked
+        ? [...state.filters.tags, tag]
+        : state.filters.tags.filter(t => t !== tag);
       renderBrowse();
     });
-    wrap.appendChild(chip);
+    label.appendChild(box);
+    label.appendChild(document.createTextNode(tag));
+    wrap.appendChild(label);
   });
+  if (state.tags.length === 0) wrap.innerHTML = '<div class="filter-check-empty">No tags yet.</div>';
+
+  const n = state.filters.tags.length;
+  const count = document.getElementById('filter-tags-count');
+  count.textContent = n;
+  count.style.display = n ? '' : 'none';
+  document.getElementById('filter-tags-clear').style.display = n ? '' : 'none';
+  document.getElementById('filter-tags-dd').classList.toggle('active', n > 0);
+  document.getElementById('tag-mode-toggle').style.display = n > 1 ? '' : 'none';
 }
 
 function renderBoardFilters() {
-  const wrap = document.getElementById('filter-boards');
-  const group = document.getElementById('filter-boards-group');
-  wrap.innerHTML = '';
-  if (state.boards.length === 0) { group.style.display = 'none'; return; }
-  group.style.display = '';
-
-  const allChip = document.createElement('button');
-  allChip.className = 'chip' + (!state.filters.board ? ' active' : '');
-  allChip.textContent = 'All';
-  allChip.addEventListener('click', () => { state.filters.board = ''; renderBoardFilters(); renderBrowse(); });
-  wrap.appendChild(allChip);
-
+  const sel = document.getElementById('filter-boards');
+  sel.style.display = state.boards.length === 0 ? 'none' : '';
+  sel.innerHTML = '<option value="">All Boards</option>';
   state.boards.forEach(b => {
-    const chip = document.createElement('button');
-    chip.className = 'chip' + (state.filters.board === b.id ? ' active' : '');
-    chip.textContent = b.name;
-    chip.addEventListener('click', () => { state.filters.board = b.id; renderBoardFilters(); renderBrowse(); });
-    wrap.appendChild(chip);
+    const opt = document.createElement('option');
+    opt.value = b.id;
+    opt.textContent = b.name;
+    sel.appendChild(opt);
   });
+  sel.value = state.filters.board;
+  sel.classList.toggle('active', !!state.filters.board);
 }
 
 // ═══════════════════════════════════════════ BROWSE ══
@@ -320,8 +346,14 @@ function applyFilters(entries) {
 }
 
 function renderBrowse() {
+  const f = state.filters;
+  renderTypeFilter();
   renderTagFilters();
   renderBoardFilters();
+  document.getElementById('filter-fav').classList.toggle('active', f.favorite);
+  document.getElementById('filter-clear').style.display =
+    (f.type || f.tags.length || f.board || f.favorite) ? '' : 'none';
+
   const filtered = applyFilters(state.entries).sort((a, b) => new Date(b.date_added) - new Date(a.date_added));
   renderGrid(document.getElementById('entry-grid'), filtered, true);
   document.getElementById('browse-empty').style.display = filtered.length === 0 ? '' : 'none';
