@@ -5,33 +5,35 @@
       "url": "https://linear.app/",
       "screenshot": "3e29a9f2-1172-4684-b258-71e9876e9cdc.png",
       "type": "Website",
-      "style_tags": [],
-      "note": "Test",
-      "found_via": "Test",
+      "style_tags": [
+        "Minimal"
+      ],
+      "note": "",
+      "found_via": "",
       "favorite": false,
       "boards": [],
-      "date_added": "2026-09-19T23:38:05.432Z"
+      "date_added": "2026-09-19T23:38:05.432Z",
+      "title": "Linear",
+      "color": "Black"
     },
     {
       "id": "be3934e4-377e-4277-98d8-a49869962d48",
       "url": "https://attio.com/",
       "screenshot": "930e3ac1-a422-4e5f-af95-0cab1be1c2f6.png",
       "type": "Website",
-      "style_tags": [],
+      "style_tags": [
+        "Minimal"
+      ],
       "note": "Clean",
       "found_via": "",
-      "favorite": true,
+      "favorite": false,
       "boards": [],
-      "date_added": "2026-09-19T23:50:32.091Z"
+      "date_added": "2026-09-19T23:50:32.091Z",
+      "title": "Attio",
+      "color": "White"
     }
   ],
-  "boards": [
-    {
-      "id": "235dab5f-83d0-49e1-9de4-dedecc81480f",
-      "name": "kjhbkb",
-      "created": "2026-09-20T00:01:59.917Z"
-    }
-  ],
+  "boards": [],
   "tags": [
     "Minimal",
     "Brutalist",
@@ -58,8 +60,7 @@
     "Spacious",
     "Colorful",
     "Muted",
-    "Illustrated",
-    "test"
+    "Illustrated"
   ],
   "types": [
     "Website",

@@ -325,6 +325,16 @@ app.post('/api/types', (req, res) => {
   res.status(201).json({ types: db.types });
 });
 
+app.delete('/api/types/:name', (req, res) => {
+  const db = readDB();
+  const name = decodeURIComponent(req.params.name);
+  db.types = db.types.filter(t => t !== name);
+  // Clear it from any entry still using it
+  db.entries.forEach(e => { if (e.type === name) e.type = null; });
+  writeDB(db);
+  res.json({ types: db.types });
+});
+
 // ─── Found Via ────────────────────────────────────────────────────────────────
 app.get('/api/found-via', (req, res) => {
   res.json(readDB().foundVia);
@@ -341,6 +351,15 @@ app.post('/api/found-via', (req, res) => {
   db.foundVia.push(normalized);
   writeDB(db);
   res.status(201).json({ foundVia: db.foundVia });
+});
+
+app.delete('/api/found-via/:name', (req, res) => {
+  const db = readDB();
+  const name = decodeURIComponent(req.params.name);
+  db.foundVia = db.foundVia.filter(t => t !== name);
+  db.entries.forEach(e => { if (e.found_via === name) e.found_via = ''; });
+  writeDB(db);
+  res.json({ foundVia: db.foundVia });
 });
 
 // ─── Export ───────────────────────────────────────────────────────────────────

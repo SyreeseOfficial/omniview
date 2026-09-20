@@ -1108,6 +1108,9 @@ function setupSettings() {
     if (e.key === 'Enter') document.getElementById('add-tag-btn').click();
   });
 
+  setupOptionAdder('new-type-input', 'add-type-btn', () => state.types, ensureType, renderTypeList);
+  setupOptionAdder('new-found-via-input', 'add-found-via-btn', () => state.foundVia, ensureFoundVia, renderFoundViaList);
+
   document.getElementById('reset-btn').addEventListener('click', () => {
     confirm_('Factory reset? ALL entries, boards, and tags will be permanently deleted. This cannot be undone.', async () => {
       await api.post('/api/reset', {});
@@ -1121,6 +1124,8 @@ function setupSettings() {
 
 function renderSettings() {
   renderTagList();
+  renderTypeList();
+  renderFoundViaList();
   // Sync theme buttons
   const t = document.documentElement.dataset.theme;
   document.querySelectorAll('.theme-btn').forEach(b => b.classList.toggle('active', b.dataset.t === t));
@@ -1186,6 +1191,93 @@ function renderTagList() {
     item.appendChild(actions);
     list.appendChild(item);
   });
+}
+
+function setupOptionAdder(inputId, buttonId, getOptions, ensureFn, onAdded) {
+  const input = document.getElementById(inputId);
+  const add = async () => {
+    const name = input.value.trim();
+    if (!name) return;
+    if (getOptions().some(o => o.toLowerCase() === name.toLowerCase())) { alert('That option already exists.'); return; }
+    await ensureFn(name);
+    input.value = '';
+    onAdded();
+  };
+  document.getElementById(buttonId).addEventListener('click', add);
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') add(); });
+}
+
+// Delete-only manager list, shared by the Entry Types and Found Via sections.
+// The confirm message states how many entries lose the value, since unlike a
+// style tag these live in a single-value field that gets cleared outright.
+function renderManagedList(listId, items, countUsage, onDelete) {
+  const list = document.getElementById(listId);
+  list.innerHTML = '';
+  if (items.length === 0) {
+    list.innerHTML = '<div class="tag-list-empty">None yet.</div>';
+    return;
+  }
+  [...items].sort((a, b) => a.localeCompare(b)).forEach(name => {
+    const item = document.createElement('div');
+    item.className = 'tag-list-item';
+
+    const nameSpan = document.createElement('span');
+    nameSpan.textContent = name;
+    item.appendChild(nameSpan);
+
+    const used = countUsage(name);
+    if (used) {
+      const hint = document.createElement('small');
+      hint.className = 'tag-list-use';
+      hint.textContent = `${used} ${used === 1 ? 'entry' : 'entries'}`;
+      item.appendChild(hint);
+    }
+
+    const actions = document.createElement('div');
+    actions.className = 'tag-list-actions';
+    const delBtn = document.createElement('button');
+    delBtn.className = 'tag-action-btn del';
+    delBtn.textContent = 'Delete';
+    delBtn.addEventListener('click', () => {
+      const tail = used
+        ? `It will be cleared from ${used} ${used === 1 ? 'entry' : 'entries'}.`
+        : 'No entries use it.';
+      confirm_(`Delete "${name}"? ${tail}`, () => onDelete(name));
+    });
+    actions.appendChild(delBtn);
+    item.appendChild(actions);
+    list.appendChild(item);
+  });
+}
+
+function renderTypeList() {
+  renderManagedList(
+    'type-list',
+    state.types,
+    name => state.entries.filter(e => e.type === name).length,
+    async name => {
+      const res = await api.del(`/api/types/${encodeURIComponent(name)}`);
+      state.types = res.types;
+      state.entries.forEach(e => { if (e.type === name) e.type = null; });
+      if (state.filters.type === name) state.filters.type = '';
+      renderTypeList();
+      renderBrowse();
+    }
+  );
+}
+
+function renderFoundViaList() {
+  renderManagedList(
+    'found-via-list',
+    state.foundVia,
+    name => state.entries.filter(e => e.found_via === name).length,
+    async name => {
+      const res = await api.del(`/api/found-via/${encodeURIComponent(name)}`);
+      state.foundVia = res.foundVia;
+      state.entries.forEach(e => { if (e.found_via === name) e.found_via = ''; });
+      renderFoundViaList();
+    }
+  );
 }
 
 // ═══════════════════════════════════════════ STATS ══
