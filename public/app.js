@@ -6,6 +6,7 @@ const state = {
   entries: [],
   boards: [],
   tags: [],
+  types: [],
   filters: { q: '', type: '', tags: [], board: '', favorite: false, tagMode: 'any' },
   bulkMode: false,
   selectedIds: new Set(),
@@ -57,17 +58,58 @@ async function init() {
   setupAddForm();
   setupDetailModal();
   setupConfirmModal();
+  setupBoardPicker();
   setupSettings();
+  setupPasteImage();
   renderBrowse();
   refreshStats();
 }
 
+// ═══════════════════════════════════════════ PASTE IMAGE ══
+function setupPasteImage() {
+  document.addEventListener('paste', e => {
+    const items = e.clipboardData && e.clipboardData.items;
+    if (!items) return;
+    const item = [...items].find(i => i.type && i.type.startsWith('image/'));
+    if (!item) return;
+    const file = item.getAsFile();
+    if (!file) return;
+    if (state.detailEntry && document.getElementById('detail-overlay').style.display !== 'none') {
+      applyDetailScreenshot(file);
+    } else if (state.view === 'add') {
+      setScreenshotPreview(file);
+    }
+  });
+}
+
 async function loadAll() {
-  [state.entries, state.boards, state.tags] = await Promise.all([
+  [state.entries, state.boards, state.tags, state.types] = await Promise.all([
     api.get('/api/entries'),
     api.get('/api/boards'),
-    api.get('/api/tags')
+    api.get('/api/tags'),
+    api.get('/api/types')
   ]);
+  renderTypeDatalist();
+}
+
+// ═══════════════════════════════════════════ TYPES ══
+function renderTypeDatalist() {
+  const list = document.getElementById('type-datalist');
+  list.innerHTML = '';
+  [...state.types].sort((a, b) => a.localeCompare(b)).forEach(t => {
+    const opt = document.createElement('option');
+    opt.value = t;
+    list.appendChild(opt);
+  });
+}
+
+// Persists a newly-typed type value (mirrors how new style tags are created).
+async function ensureType(value) {
+  const val = (value || '').trim();
+  if (!val || state.types.some(t => t.toLowerCase() === val.toLowerCase())) return;
+  state.types.push(val);
+  renderTypeDatalist();
+  try { await api.post('/api/types', { name: val }); } catch { /* already exists server-side */ }
 }
 
 // ═══════════════════════════════════════════ NAVIGATION ══
@@ -167,7 +209,7 @@ function setupFilters() {
 function renderTagFilters() {
   const wrap = document.getElementById('filter-tags');
   wrap.innerHTML = '';
-  state.tags.forEach(tag => {
+  [...state.tags].sort((a, b) => a.localeCompare(b)).forEach(tag => {
     const chip = document.createElement('button');
     chip.className = 'chip' + (state.filters.tags.includes(tag) ? ' active' : '');
     chip.textContent = tag;
@@ -398,7 +440,7 @@ function updateBulkCount() {
   // Populate tag dropdown
   const sel = document.getElementById('bulk-tag-select');
   sel.innerHTML = '<option value="">Add tag…</option>';
-  state.tags.forEach(t => { const o = document.createElement('option'); o.value = t; o.textContent = t; sel.appendChild(o); });
+  [...state.tags].sort((a, b) => a.localeCompare(b)).forEach(t => { const o = document.createElement('option'); o.value = t; o.textContent = t; sel.appendChild(o); });
 }
 
 // ═══════════════════════════════════════════ FAVORITES ══
@@ -454,6 +496,8 @@ function openBoard(board) {
   document.getElementById('boards-title').textContent = board.name;
   document.getElementById('board-detail').style.display = '';
 
+  document.getElementById('add-to-board-btn').onclick = () => openBoardPicker(board);
+
   document.getElementById('rename-board-btn').onclick = async () => {
     const name = prompt('New board name:', board.name);
     if (!name || name === board.name) return;
@@ -480,6 +524,52 @@ function openBoard(board) {
   const entries = state.entries.filter(e => (e.boards || []).includes(board.id));
   renderGrid(document.getElementById('board-entry-grid'), entries);
   document.getElementById('board-empty').style.display = entries.length === 0 ? '' : 'none';
+}
+
+// ── Board picker: add existing entries to the currently open board ──
+function setupBoardPicker() {
+  document.getElementById('board-picker-cancel').addEventListener('click', closeBoardPicker);
+  document.getElementById('board-picker-overlay').addEventListener('click', e => {
+    if (e.target === document.getElementById('board-picker-overlay')) closeBoardPicker();
+  });
+
+  document.getElementById('board-picker-add').addEventListener('click', async () => {
+    const board = state.currentBoard;
+    if (!board) return;
+    const ids = [...document.querySelectorAll('#board-picker-list input:checked')].map(el => el.value);
+    if (ids.length === 0) { closeBoardPicker(); return; }
+    await api.post('/api/entries/bulk', { ids, action: 'addToBoard', boards: board.id });
+    ids.forEach(id => {
+      const entry = state.entries.find(e => e.id === id);
+      if (entry && !(entry.boards || []).includes(board.id)) entry.boards.push(board.id);
+    });
+    closeBoardPicker();
+    openBoard(board);
+    renderBoardFilters();
+  });
+}
+
+function openBoardPicker(board) {
+  const list = document.getElementById('board-picker-list');
+  list.innerHTML = '';
+  const available = state.entries.filter(e => !(e.boards || []).includes(board.id));
+
+  if (available.length === 0) {
+    list.innerHTML = '<div class="board-picker-empty">Every entry is already on this board.</div>';
+  } else {
+    available.forEach(entry => {
+      const label = document.createElement('label');
+      label.className = 'checkbox-label';
+      label.innerHTML = `<input type="checkbox" value="${entry.id}"><span class="checkmark"></span>${escHtml(cleanUrl(entry.url))}`;
+      list.appendChild(label);
+    });
+  }
+
+  document.getElementById('board-picker-overlay').style.display = '';
+}
+
+function closeBoardPicker() {
+  document.getElementById('board-picker-overlay').style.display = 'none';
 }
 
 document.getElementById('board-back').addEventListener('click', () => {
@@ -510,13 +600,17 @@ function openAddForm(entry) {
   // Reset form
   document.getElementById('f-url').value = entry ? entry.url : '';
   document.getElementById('f-type').value = entry ? (entry.type || '') : '';
+  document.getElementById('f-color').value = entry ? (entry.color || '') : '';
   document.getElementById('f-found-via').value = entry ? (entry.found_via || '') : '';
   document.getElementById('f-note').value = entry ? (entry.note || '') : '';
   document.getElementById('f-favorite').checked = entry ? !!entry.favorite : false;
   document.getElementById('edit-entry-id').value = entry ? entry.id : '';
   document.getElementById('dupe-warning').style.display = 'none';
 
-  formSelectedTags = entry ? [...(entry.style_tags || [])] : [];
+  // Mutate in place (not `formSelectedTags = [...]`) so the array reference
+  // captured by setupTagInput's closures stays valid — see renderFormTagPills.
+  formSelectedTags.length = 0;
+  formSelectedTags.push(...(entry ? (entry.style_tags || []) : []));
   formSelectedBoards = new Set(entry ? (entry.boards || []) : []);
 
   renderFormTagPills();
@@ -598,9 +692,13 @@ function setupAddForm() {
     const url = document.getElementById('f-url').value.trim();
     if (!url) return;
 
+    const type = document.getElementById('f-type').value.trim();
+    await ensureType(type);
+
     const payload = {
       url,
-      type: document.getElementById('f-type').value || null,
+      type: type || null,
+      color: document.getElementById('f-color').value || null,
       found_via: document.getElementById('f-found-via').value.trim(),
       note: document.getElementById('f-note').value.trim(),
       favorite: document.getElementById('f-favorite').checked,
@@ -645,7 +743,8 @@ function setScreenshotPreview(file) {
 
 function renderFormTagPills() {
   renderTagPills(document.getElementById('tag-pills'), formSelectedTags, tag => {
-    formSelectedTags = formSelectedTags.filter(t => t !== tag);
+    const i = formSelectedTags.indexOf(tag);
+    if (i !== -1) formSelectedTags.splice(i, 1);
     renderFormTagPills();
   });
 }
@@ -714,7 +813,9 @@ function setupTagInput(inputId, dropdownId, pillsId, tagsArr, onUpdate) {
 
 function renderTagDropdown(input, dropdown, tagsArr, onUpdate) {
   const q = input.value.toLowerCase();
-  const available = state.tags.filter(t => !tagsArr.includes(t) && t.toLowerCase().includes(q));
+  const available = state.tags
+    .filter(t => !tagsArr.includes(t) && t.toLowerCase().includes(q))
+    .sort((a, b) => a.localeCompare(b));
   dropdown.innerHTML = '';
 
   if (available.length === 0 && !q) { dropdown.style.display = 'none'; return; }
@@ -762,6 +863,17 @@ function renderTagDropdown(input, dropdown, tagsArr, onUpdate) {
 let detailTags = [];
 let detailBoards = new Set();
 
+async function applyDetailScreenshot(file) {
+  if (!state.detailEntry) return;
+  const { screenshot } = await api.uploadScreenshot(state.detailEntry.id, file);
+  const idx = state.entries.findIndex(en => en.id === state.detailEntry.id);
+  if (idx !== -1) state.entries[idx].screenshot = screenshot;
+  state.detailEntry.screenshot = screenshot;
+  document.getElementById('detail-screenshot').src = `/uploads/${screenshot}?t=${Date.now()}`;
+  document.getElementById('detail-screenshot').style.display = '';
+  document.getElementById('detail-no-screenshot').style.display = 'none';
+}
+
 function setupDetailModal() {
   document.getElementById('detail-close').addEventListener('click', closeDetail);
   document.getElementById('detail-overlay').addEventListener('click', e => {
@@ -778,14 +890,7 @@ function setupDetailModal() {
   // Screenshot upload in detail
   document.getElementById('detail-screenshot-file').addEventListener('change', async e => {
     const file = e.target.files[0];
-    if (!file || !state.detailEntry) return;
-    const { screenshot } = await api.uploadScreenshot(state.detailEntry.id, file);
-    const idx = state.entries.findIndex(en => en.id === state.detailEntry.id);
-    if (idx !== -1) state.entries[idx].screenshot = screenshot;
-    state.detailEntry.screenshot = screenshot;
-    document.getElementById('detail-screenshot').src = `/uploads/${screenshot}?t=${Date.now()}`;
-    document.getElementById('detail-screenshot').style.display = '';
-    document.getElementById('detail-no-screenshot').style.display = 'none';
+    if (file) await applyDetailScreenshot(file);
   });
 
   // Tag input in detail
@@ -793,9 +898,12 @@ function setupDetailModal() {
 
   document.getElementById('detail-save').addEventListener('click', async () => {
     if (!state.detailEntry) return;
+    const type = document.getElementById('detail-type').value.trim();
+    await ensureType(type);
     const payload = {
       url: state.detailEntry.url,
-      type: document.getElementById('detail-type').value || null,
+      type: type || null,
+      color: document.getElementById('detail-color').value || null,
       found_via: document.getElementById('detail-found-via').value.trim(),
       note: document.getElementById('detail-note').value.trim(),
       favorite: state.detailEntry.favorite,
@@ -826,13 +934,16 @@ async function openDetail(id) {
   const entry = state.entries.find(e => e.id === id);
   if (!entry) return;
   state.detailEntry = entry;
-  detailTags = [...(entry.style_tags || [])];
+  // Mutate in place — see the comment in openAddForm for why reassigning breaks the tag dropdown.
+  detailTags.length = 0;
+  detailTags.push(...(entry.style_tags || []));
   detailBoards = new Set(entry.boards || []);
 
   document.getElementById('detail-url').href = entry.url;
   document.getElementById('detail-url').textContent = entry.url;
   document.getElementById('detail-fav').classList.toggle('is-fav', !!entry.favorite);
   document.getElementById('detail-type').value = entry.type || '';
+  document.getElementById('detail-color').value = entry.color || '';
   document.getElementById('detail-found-via').value = entry.found_via || '';
   document.getElementById('detail-note').value = entry.note || '';
   document.getElementById('detail-date').textContent = new Date(entry.date_added).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
@@ -861,7 +972,8 @@ function closeDetail() {
 
 function renderDetailTagPills() {
   renderTagPills(document.getElementById('detail-tag-pills'), detailTags, tag => {
-    detailTags = detailTags.filter(t => t !== tag);
+    const i = detailTags.indexOf(tag);
+    if (i !== -1) detailTags.splice(i, 1);
     renderDetailTagPills();
   });
 }

@@ -27,15 +27,20 @@ const DEFAULT_DB = {
     'Typographic', 'Editorial', 'Playful', 'Corporate', 'Retro',
     'Futuristic', 'Hand-drawn', 'Geometric', 'Organic', 'Bold',
     'Clean', 'Dense', 'Spacious', 'Colorful', 'Muted', 'Illustrated'
-  ]
+  ],
+  types: ['Website', 'Mobile App', 'Web App']
 };
 
 function readDB() {
+  let data;
   try {
-    return JSON.parse(fs.readFileSync(DB_PATH, 'utf8'));
+    data = JSON.parse(fs.readFileSync(DB_PATH, 'utf8'));
   } catch {
     return JSON.parse(JSON.stringify(DEFAULT_DB));
   }
+  // Back-fill fields added after this file was first written
+  if (!data.types) data.types = [...DEFAULT_DB.types];
+  return data;
 }
 
 function writeDB(data) {
@@ -107,7 +112,7 @@ app.get('/api/entries/:id', (req, res) => {
 // Create entry
 app.post('/api/entries', (req, res) => {
   const db = readDB();
-  const { url, type, style_tags, note, found_via, favorite, boards } = req.body;
+  const { url, type, color, style_tags, note, found_via, favorite, boards } = req.body;
   if (!url) return res.status(400).json({ error: 'url is required' });
 
   const existing = db.entries.find(e => e.url === url);
@@ -118,6 +123,7 @@ app.post('/api/entries', (req, res) => {
     url,
     screenshot: null,
     type: type || null,
+    color: color || null,
     style_tags: style_tags || [],
     note: note || '',
     found_via: found_via || '',
@@ -137,7 +143,7 @@ app.put('/api/entries/:id', (req, res) => {
   const idx = db.entries.findIndex(e => e.id === req.params.id);
   if (idx === -1) return res.status(404).json({ error: 'Not found' });
 
-  const allowed = ['url', 'type', 'style_tags', 'note', 'found_via', 'favorite', 'boards'];
+  const allowed = ['url', 'type', 'color', 'style_tags', 'note', 'found_via', 'favorite', 'boards'];
   allowed.forEach(k => {
     if (req.body[k] !== undefined) db.entries[idx][k] = req.body[k];
   });
@@ -296,6 +302,24 @@ app.delete('/api/tags/:name', (req, res) => {
   });
   writeDB(db);
   res.json({ tags: db.tags });
+});
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+app.get('/api/types', (req, res) => {
+  res.json(readDB().types);
+});
+
+app.post('/api/types', (req, res) => {
+  const { name } = req.body;
+  if (!name) return res.status(400).json({ error: 'name required' });
+  const db = readDB();
+  const normalized = name.trim();
+  if (db.types.map(t => t.toLowerCase()).includes(normalized.toLowerCase())) {
+    return res.status(409).json({ error: 'Type already exists' });
+  }
+  db.types.push(normalized);
+  writeDB(db);
+  res.status(201).json({ types: db.types });
 });
 
 // ─── Export ───────────────────────────────────────────────────────────────────

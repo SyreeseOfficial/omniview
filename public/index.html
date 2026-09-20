@@ -160,6 +160,7 @@
       <div class="view-title-row" style="margin-bottom:1.5rem">
         <button class="btn-ghost btn-back" id="board-back">← All Boards</button>
         <div style="display:flex;gap:.5rem;align-items:center">
+          <button class="btn-sm" id="add-to-board-btn">+ Add</button>
           <button class="btn-sm" id="rename-board-btn">Rename</button>
           <button class="btn-sm btn-danger" id="delete-board-btn">Delete Board</button>
         </div>
@@ -216,11 +217,26 @@
 
         <div class="form-group">
           <label for="f-type">Type</label>
-          <select id="f-type">
+          <input type="text" id="f-type" list="type-datalist" placeholder="Select or type a new type…" autocomplete="off">
+          <datalist id="type-datalist"></datalist>
+        </div>
+
+        <div class="form-group">
+          <label for="f-color">Color</label>
+          <select id="f-color">
             <option value="">— none —</option>
-            <option value="Website">Website</option>
-            <option value="Mobile App">Mobile App</option>
-            <option value="Web App">Web App</option>
+            <option>Black</option>
+            <option>White</option>
+            <option>Gray</option>
+            <option>Red</option>
+            <option>Orange</option>
+            <option>Yellow</option>
+            <option>Green</option>
+            <option>Blue</option>
+            <option>Purple</option>
+            <option>Pink</option>
+            <option>Brown</option>
+            <option>Multicolor</option>
           </select>
         </div>
 
@@ -339,11 +355,25 @@
 
         <div class="detail-field">
           <span class="detail-label">Type</span>
-          <select id="detail-type" class="detail-select">
+          <input type="text" id="detail-type" class="detail-input" list="type-datalist" placeholder="Select or type a new type…" autocomplete="off">
+        </div>
+
+        <div class="detail-field">
+          <span class="detail-label">Color</span>
+          <select id="detail-color" class="detail-select">
             <option value="">— none —</option>
-            <option value="Website">Website</option>
-            <option value="Mobile App">Mobile App</option>
-            <option value="Web App">Web App</option>
+            <option>Black</option>
+            <option>White</option>
+            <option>Gray</option>
+            <option>Red</option>
+            <option>Orange</option>
+            <option>Yellow</option>
+            <option>Green</option>
+            <option>Blue</option>
+            <option>Purple</option>
+            <option>Pink</option>
+            <option>Brown</option>
+            <option>Multicolor</option>
           </select>
         </div>
 
@@ -383,6 +413,18 @@
           <button class="btn-danger btn-sm" id="detail-delete">Delete Entry</button>
         </div>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════ BOARD PICKER MODAL ══ -->
+<div class="modal-overlay" id="board-picker-overlay" style="display:none">
+  <div class="modal confirm-modal">
+    <h3>Add entries to board</h3>
+    <div class="board-picker-list" id="board-picker-list"></div>
+    <div class="confirm-actions">
+      <button class="btn-ghost" id="board-picker-cancel">Cancel</button>
+      <button class="btn-primary" id="board-picker-add">Add Selected</button>
     </div>
   </div>
 </div>

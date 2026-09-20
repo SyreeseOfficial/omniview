@@ -6,14 +6,51 @@
       "screenshot": "3e29a9f2-1172-4684-b258-71e9876e9cdc.png",
       "type": "Website",
       "style_tags": [],
-      "note": "",
-      "found_via": "",
+      "note": "Test",
+      "found_via": "Test",
       "favorite": false,
-      "boards": [],
+      "boards": [
+        "39f21a4a-66f7-4d51-bf09-b55150cacff0"
+      ],
       "date_added": "2026-09-19T23:38:05.432Z"
+    },
+    {
+      "id": "be3934e4-377e-4277-98d8-a49869962d48",
+      "url": "https://attio.com/",
+      "screenshot": "930e3ac1-a422-4e5f-af95-0cab1be1c2f6.png",
+      "type": "Website",
+      "style_tags": [],
+      "note": "Clean",
+      "found_via": "",
+      "favorite": true,
+      "boards": [
+        "39f21a4a-66f7-4d51-bf09-b55150cacff0"
+      ],
+      "date_added": "2026-09-19T23:50:32.091Z"
     }
   ],
-  "boards": [],
+  "boards": [
+    {
+      "id": "39f21a4a-66f7-4d51-bf09-b55150cacff0",
+      "name": "new name",
+      "created": "2026-09-19T23:50:55.779Z"
+    },
+    {
+      "id": "e202ecff-6be9-4ce9-b0a5-954df2639b4e",
+      "name": "kbikb",
+      "created": "2026-09-20T00:01:54.262Z"
+    },
+    {
+      "id": "001688fe-33a9-44aa-9ff5-31dc9540926e",
+      "name": "jvc",
+      "created": "2026-09-20T00:01:57.714Z"
+    },
+    {
+      "id": "235dab5f-83d0-49e1-9de4-dedecc81480f",
+      "name": "kjhbkb",
+      "created": "2026-09-20T00:01:59.917Z"
+    }
+  ],
   "tags": [
     "Minimal",
     "Brutalist",
@@ -40,7 +77,11 @@
     "Spacious",
     "Colorful",
     "Muted",
-    "Illustrated",
-    "Minimalist"
+    "Illustrated"
+  ],
+  "types": [
+    "Website",
+    "Mobile App",
+    "Web App"
   ]
 }
