@@ -10,7 +10,7 @@
       ],
       "note": "",
       "found_via": "",
-      "favorite": false,
+      "favorite": true,
       "boards": [],
       "date_added": "2026-09-19T23:38:05.432Z",
       "title": "Linear",
@@ -31,9 +31,371 @@
       "date_added": "2026-09-19T23:50:32.091Z",
       "title": "Attio",
       "color": "White"
+    },
+    {
+      "id": "04ca0253-23d9-4f68-a376-a0ac0d9b0714",
+      "url": "https://sondaven.com/en",
+      "title": "SonDaven",
+      "screenshot": "b91b8962-78c1-4370-98d5-339d8fa98c6f.png",
+      "type": "Website",
+      "color": "Yellow",
+      "style_tags": [
+        "Video Scroll"
+      ],
+      "note": "",
+      "found_via": "Awwwards",
+      "favorite": false,
+      "boards": [],
+      "date_added": "2026-09-20T01:20:58.711Z"
+    },
+    {
+      "id": "80597691-c2f1-4371-b9d9-50acb1ac7077",
+      "url": "https://lamalama.com/",
+      "title": "Lama Lama",
+      "screenshot": "385dc387-44a0-4238-8443-29f902b1021c.png",
+      "type": "Website",
+      "color": "Gray",
+      "style_tags": [
+        "Video Scroll"
+      ],
+      "note": "",
+      "found_via": "Awwwards",
+      "favorite": false,
+      "boards": [],
+      "date_added": "2026-09-20T01:22:17.136Z"
+    },
+    {
+      "id": "516dd48e-1be2-4478-b075-3da684046a1a",
+      "url": "https://oryzo.ai/",
+      "title": "Oryzo",
+      "screenshot": "e11b0b9d-a341-4437-8de1-e0f578eb7315.png",
+      "type": "Website",
+      "color": "Orange",
+      "style_tags": [
+        "Video Scroll"
+      ],
+      "note": "",
+      "found_via": "Awwwards",
+      "favorite": false,
+      "boards": [],
+      "date_added": "2026-09-20T01:23:25.678Z"
+    },
+    {
+      "id": "bed97df3-3715-4118-a6be-192517d2b8fa",
+      "url": "https://www.shopify.com/editions/winter2026",
+      "title": "Shopify",
+      "screenshot": "9050bda6-1690-4f8c-a8d1-50833191cfca.png",
+      "type": null,
+      "color": null,
+      "style_tags": [
+        "Video Scroll"
+      ],
+      "note": "",
+      "found_via": "Awwwards",
+      "favorite": false,
+      "boards": [],
+      "date_added": "2026-09-20T01:24:10.973Z"
+    },
+    {
+      "id": "0ef5fb9f-0da7-46bf-b8a0-c84e8fbc31d0",
+      "url": "https://mindmarket.com/",
+      "title": "Mind Market",
+      "screenshot": "e4afb053-6312-4f55-b1c8-513f1019cd6a.png",
+      "type": "Website",
+      "color": "Green",
+      "style_tags": [
+        "Hand-drawn",
+        "Playful"
+      ],
+      "note": "",
+      "found_via": "Awwwards",
+      "favorite": false,
+      "boards": [],
+      "date_added": "2026-09-20T01:25:09.346Z"
+    },
+    {
+      "id": "d93b7c11-7da3-437c-ac24-4616b90d57ad",
+      "url": "https://terminal-industries.com/",
+      "title": "Terminal Industries",
+      "screenshot": "edc20113-0f6d-4840-98e6-9219f9867821.png",
+      "type": "Website",
+      "color": "Multicolor",
+      "style_tags": [
+        "Video Scroll"
+      ],
+      "note": "",
+      "found_via": "Awwwards",
+      "favorite": false,
+      "boards": [],
+      "date_added": "2026-09-20T01:26:12.105Z"
+    },
+    {
+      "id": "f7e7caaf-f43c-4842-becf-ff768cd1f159",
+      "url": "https://www.brookebeswick.com/",
+      "title": "Brooke Beswick",
+      "screenshot": "1e7b935a-e15f-4687-8423-49f0fce62c2e.png",
+      "type": "Website",
+      "color": "Multicolor",
+      "style_tags": [
+        "Playful"
+      ],
+      "note": "",
+      "found_via": "Awwwards",
+      "favorite": false,
+      "boards": [],
+      "date_added": "2026-09-20T01:27:01.342Z"
+    },
+    {
+      "id": "5b9af705-0396-478e-b7c2-9b6a3dbdf36d",
+      "url": "https://www.brilean.com/",
+      "title": "Brilean",
+      "screenshot": "4de80bff-6ae3-4688-826a-d3afb17dc991.png",
+      "type": "Website",
+      "color": "Black",
+      "style_tags": [
+        "Minimal"
+      ],
+      "note": "",
+      "found_via": "Awwwards",
+      "favorite": false,
+      "boards": [],
+      "date_added": "2026-09-20T01:28:21.003Z"
+    },
+    {
+      "id": "de454451-d234-4a4e-8ff6-42a0ed087450",
+      "url": "https://wearebou.com/",
+      "title": "We Are Bou",
+      "screenshot": "e5ffc6f9-25b5-4a56-9b29-9aa9075cc66a.png",
+      "type": "Website",
+      "color": "White",
+      "style_tags": [
+        "Video Scroll"
+      ],
+      "note": "",
+      "found_via": "Awwwards",
+      "favorite": false,
+      "boards": [],
+      "date_added": "2026-09-20T01:34:24.960Z"
+    },
+    {
+      "id": "9fdba950-f4f2-48a3-8030-3b8a9bc979fa",
+      "url": "https://adammount.org/",
+      "title": "Kavimada",
+      "screenshot": "171e6414-84d1-4234-9942-6f0d94fee02e.png",
+      "type": "Website",
+      "color": "White",
+      "style_tags": [
+        "Playful"
+      ],
+      "note": "",
+      "found_via": "Awwwards",
+      "favorite": false,
+      "boards": [],
+      "date_added": "2026-09-20T01:36:17.188Z"
+    },
+    {
+      "id": "ea3a1435-2d8e-4a79-a548-6d40c9dcc319",
+      "url": "https://jamiemckaye.com/",
+      "title": "Jamie McKaye",
+      "screenshot": "61182d35-84f2-4194-ab97-6daafec3624d.png",
+      "type": "Website",
+      "color": "Black",
+      "style_tags": [
+        "Monochrome",
+        "Minimal"
+      ],
+      "note": "",
+      "found_via": "Awwwards",
+      "favorite": true,
+      "boards": [],
+      "date_added": "2026-09-20T01:42:04.837Z"
+    },
+    {
+      "id": "419d3d22-47ff-4ac0-ba5a-bd3b24fe6d28",
+      "url": "https://www.arturospatino.com/",
+      "title": "Arturo Spatino",
+      "screenshot": "7c665c78-0eff-4103-a5b5-0d0b95947ae9.png",
+      "type": "Website",
+      "color": "White",
+      "style_tags": [
+        "Minimal",
+        "Monochrome"
+      ],
+      "note": "",
+      "found_via": "Awwwards",
+      "favorite": false,
+      "boards": [],
+      "date_added": "2026-09-20T01:43:03.879Z"
+    },
+    {
+      "id": "a00004be-6cc2-481a-adb5-ac1148826342",
+      "url": "https://bycrawford.com/hire-us",
+      "title": "By Crawford",
+      "screenshot": "021ce6e8-810c-42a7-92df-1f7b60a93bd3.png",
+      "type": null,
+      "color": "White",
+      "style_tags": [
+        "Clean"
+      ],
+      "note": "",
+      "found_via": "",
+      "favorite": false,
+      "boards": [],
+      "date_added": "2026-09-20T01:45:37.361Z"
+    },
+    {
+      "id": "40b8e8d1-b028-452f-bc3e-100d33fec56d",
+      "url": "https://hyros.com/",
+      "title": "Hyros",
+      "screenshot": "4d5cb911-e6a9-4ac4-9e32-d6cecf71be84.png",
+      "type": "Website",
+      "color": "White",
+      "style_tags": [
+        "Clean"
+      ],
+      "note": "",
+      "found_via": "",
+      "favorite": false,
+      "boards": [],
+      "date_added": "2026-09-20T01:46:53.588Z"
+    },
+    {
+      "id": "e528b280-52b5-4a65-b8e2-f119352b3c86",
+      "url": "https://www.rosewell.dev/",
+      "title": "Olly Rosewell",
+      "screenshot": "9d36bb0f-8e1e-4a45-85e9-ac0fd23a3104.png",
+      "type": "Website",
+      "color": "White",
+      "style_tags": [
+        "Clean"
+      ],
+      "note": "",
+      "found_via": "YouTube",
+      "favorite": false,
+      "boards": [],
+      "date_added": "2026-09-20T01:48:58.053Z"
+    },
+    {
+      "id": "d7180c48-d566-4f2a-89c0-5fd78606e2fa",
+      "url": "https://www.socialfetch.dev/",
+      "title": "Social Fetch",
+      "screenshot": "9d89208c-d39f-41a4-96ef-43050661ca4e.png",
+      "type": "Website",
+      "color": "Green",
+      "style_tags": [
+        "Typographic"
+      ],
+      "note": "",
+      "found_via": "YouTube",
+      "favorite": false,
+      "boards": [],
+      "date_added": "2026-09-20T01:53:40.481Z"
+    },
+    {
+      "id": "3b67c7e0-5005-4695-8143-2727bd9f4977",
+      "url": "https://mwdtinc.com/",
+      "title": "MWDT",
+      "screenshot": "396870a9-f277-4062-a808-6dbb4409c8a2.png",
+      "type": "Website",
+      "color": "White",
+      "style_tags": [
+        "Clean"
+      ],
+      "note": "",
+      "found_via": "Awwwards",
+      "favorite": false,
+      "boards": [],
+      "date_added": "2026-09-20T02:06:32.496Z"
+    },
+    {
+      "id": "8e2dc7c3-5f2e-4daf-a23f-aca40069af20",
+      "url": "https://www.orchid.security/",
+      "title": "Orchid",
+      "screenshot": "fe740c20-7461-48e4-8fe5-241a6c897a42.png",
+      "type": "Website",
+      "color": "Purple",
+      "style_tags": [
+        "Clean"
+      ],
+      "note": "",
+      "found_via": "Awwwards",
+      "favorite": true,
+      "boards": [],
+      "date_added": "2026-09-20T02:08:09.232Z"
+    },
+    {
+      "id": "70c127bc-f870-42d9-a97b-31fc1e548c51",
+      "url": "https://noho.ink/#hero-section",
+      "title": "Noho",
+      "screenshot": "a1a2c791-8354-4bea-8ad5-0a078bd497f7.png",
+      "type": "Website",
+      "color": "White",
+      "style_tags": [
+        "Clean",
+        "Minimal"
+      ],
+      "note": "",
+      "found_via": "Awwwards",
+      "favorite": true,
+      "boards": [],
+      "date_added": "2026-09-20T02:16:34.817Z"
+    },
+    {
+      "id": "4a442b60-3ac0-499e-96c2-9aa944ee124e",
+      "url": "https://daqconsulting.com/",
+      "title": "Daq Consulting",
+      "screenshot": "07bf5e74-22a8-438b-9189-1a3e9806e0e4.png",
+      "type": "Website",
+      "color": "Blue",
+      "style_tags": [
+        "Bold"
+      ],
+      "note": "",
+      "found_via": "Awwwards",
+      "favorite": false,
+      "boards": [],
+      "date_added": "2026-09-20T02:21:23.991Z"
+    },
+    {
+      "id": "f32367ea-a172-46d3-bf9e-f9e7371f003e",
+      "url": "https://www.quintadamalia.com/#contact",
+      "title": "Quinta Damalia",
+      "screenshot": "b88ce865-0c31-4706-9bb0-bd445b2ed6a8.png",
+      "type": "Website",
+      "color": "White",
+      "style_tags": [
+        "Clean"
+      ],
+      "note": "",
+      "found_via": "Awwwards",
+      "favorite": false,
+      "boards": [],
+      "date_added": "2026-09-20T02:25:26.861Z"
+    },
+    {
+      "id": "cc005a84-6b28-4948-8868-6f98cb9a6aad",
+      "url": "https://www.simpleaichatbot.com/",
+      "title": "Simple AI Chatbot",
+      "screenshot": "9b7a32e7-53fa-4f4a-98c4-500a4c746e01.png",
+      "type": "Website",
+      "color": "White",
+      "style_tags": [
+        "Clean"
+      ],
+      "note": "",
+      "found_via": "Awwwards",
+      "favorite": true,
+      "boards": [],
+      "date_added": "2026-09-20T03:03:43.997Z"
     }
   ],
-  "boards": [],
+  "boards": [
+    {
+      "id": "0b404bb4-9b8a-469f-807d-a0a22d8c1f97",
+      "name": "Portfolios",
+      "created": "2026-09-20T01:54:26.748Z"
+    }
+  ],
   "tags": [
     "Minimal",
     "Brutalist",
@@ -60,19 +422,16 @@
     "Spacious",
     "Colorful",
     "Muted",
-    "Illustrated"
+    "Illustrated",
+    "Video Scroll"
   ],
   "types": [
-    "Website",
-    "Web App"
+    "Website"
   ],
   "foundVia": [
     "Dribbble",
-    "Google",
-    "Instagram",
-    "Newsletter",
-    "Pinterest",
-    "Referral",
-    "Twitter/X"
+    "Twitter/X",
+    "Awwwards",
+    "YouTube"
   ]
 }

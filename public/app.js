@@ -3,6 +3,7 @@
 // ═══════════════════════════════════════════ STATE ══
 const state = {
   view: 'browse',
+  layout: localStorage.getItem('omniview-layout') || 'gallery',
   entries: [],
   boards: [],
   tags: [],
@@ -51,10 +52,14 @@ const api = {
 // ═══════════════════════════════════════════ INIT ══
 async function init() {
   await loadAll();
+  ['f-type', 'detail-type'].forEach(id => initCombo(id, 'type'));
+  ['f-color', 'detail-color'].forEach(id => initCombo(id, 'color'));
+  ['f-found-via', 'detail-found-via'].forEach(id => initCombo(id, 'foundVia'));
   setupNav();
   setupTheme();
   setupSearch();
   setupFilters();
+  setupLayoutSwitch();
   setupBulk();
   setupAddForm();
   setupDetailModal();
@@ -62,10 +67,6 @@ async function init() {
   setupBoardPicker();
   setupSettings();
   setupPasteImage();
-  setupDynamicSelect(document.getElementById('f-type'), () => state.types, ensureType, 'New type name:');
-  setupDynamicSelect(document.getElementById('f-found-via'), () => state.foundVia, ensureFoundVia, 'New "found via" name:');
-  setupDynamicSelect(document.getElementById('detail-type'), () => state.types, ensureType, 'New type name:');
-  setupDynamicSelect(document.getElementById('detail-found-via'), () => state.foundVia, ensureFoundVia, 'New "found via" name:');
   renderBrowse();
   refreshStats();
 }
@@ -97,56 +98,160 @@ async function loadAll() {
   ]);
 }
 
-// ═══════════════════════════════════════════ DYNAMIC DROPDOWNS (Type / Found via) ══
-// Populates a <select> as: "+ Add New" pinned first, then "— None —", then
-// all options sorted alphabetically (the entry's current value is merged in
-// so editing an entry never silently drops a value that isn't in the list yet).
-function populateSelect(selectEl, options, currentValue) {
-  const merged = [...options];
-  if (currentValue && !merged.some(o => o.toLowerCase() === currentValue.toLowerCase())) merged.push(currentValue);
-  merged.sort((a, b) => a.localeCompare(b));
+// ═══════════════════════════════════════════ COMBO DROPDOWNS (Type / Color / Found via) ══
+// A single-select dropdown built from the Style Tags widget's own classes, so
+// every option field in the app shares one look. It is custom rather than a
+// native <select> because a <select> cannot host a per-option delete button.
+const COLORS = ['Black', 'White', 'Gray', 'Red', 'Orange', 'Yellow', 'Green', 'Blue', 'Purple', 'Pink', 'Brown', 'Multicolor'];
 
-  selectEl.innerHTML = '';
-  const addNew = document.createElement('option');
-  addNew.value = '__add_new__';
-  addNew.textContent = '+ Add New';
-  selectEl.appendChild(addNew);
-  const none = document.createElement('option');
-  none.value = '';
+const CARET_SVG = '<svg class="filter-caret" width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 4l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+// Blank-image mark shown wherever an entry has no uploaded screenshot.
+const PLACEHOLDER_SVG = '<svg width="28" height="28" viewBox="0 0 28 28" fill="none"><rect x="2" y="5" width="24" height="18" rx="3" stroke="currentColor" stroke-width="1.5"/><circle cx="9" cy="12" r="2" stroke="currentColor" stroke-width="1.3"/><path d="M2 19l7-5 4 3.5 3.5-2.5 9.5 6" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>';
+
+// Each kind says where its options live and — when the list is user-managed —
+// how to add or remove one. Colors are a fixed list, so they get neither.
+const COMBO_KINDS = {
+  type: {
+    getOptions: () => state.types,
+    promptLabel: 'New type name:',
+    add: ensureType,
+    remove: deleteTypeOption,
+    usage: name => state.entries.filter(e => e.type === name).length
+  },
+  foundVia: {
+    getOptions: () => state.foundVia,
+    promptLabel: 'New "found via" name:',
+    add: ensureFoundVia,
+    remove: deleteFoundViaOption,
+    usage: name => state.entries.filter(e => e.found_via === name).length
+  },
+  color: { getOptions: () => COLORS }
+};
+
+const combos = {};
+
+function initCombo(id, kindName) {
+  const root = document.getElementById(id);
+  root.innerHTML =
+    `<div class="combo-field" tabindex="0"><span class="combo-value"></span>${CARET_SVG}</div>` +
+    '<div class="combo-dropdown tag-dropdown" style="display:none"></div>';
+
+  combos[id] = { root, kind: COMBO_KINDS[kindName], value: '' };
+
+  const field = root.querySelector('.combo-field');
+  field.addEventListener('click', () => (isComboOpen(id) ? closeCombo(id) : openCombo(id)));
+  field.addEventListener('keydown', e => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openCombo(id); }
+    if (e.key === 'Escape') closeCombo(id);
+  });
+  document.addEventListener('click', e => { if (!root.contains(e.target)) closeCombo(id); });
+  setCombo(id, '');
+}
+
+function comboValue(id) { return combos[id].value; }
+
+function setCombo(id, value) {
+  const c = combos[id];
+  c.value = value || '';
+  const label = c.root.querySelector('.combo-value');
+  label.textContent = c.value || '— None —';
+  label.classList.toggle('is-empty', !c.value);
+  c.root.classList.toggle('has-value', !!c.value);
+  if (isComboOpen(id)) renderComboList(id);
+}
+
+function isComboOpen(id) { return combos[id].root.querySelector('.combo-dropdown').style.display !== 'none'; }
+function openCombo(id) { combos[id].root.querySelector('.combo-dropdown').style.display = ''; renderComboList(id); }
+function closeCombo(id) { combos[id].root.querySelector('.combo-dropdown').style.display = 'none'; }
+
+function renderComboList(id) {
+  const c = combos[id];
+  const dd = c.root.querySelector('.combo-dropdown');
+  dd.innerHTML = '';
+
+  if (c.kind.add) {
+    const addNew = document.createElement('div');
+    addNew.className = 'tag-dropdown-item create';
+    addNew.textContent = '+ Add New';
+    addNew.addEventListener('click', async () => {
+      const name = (prompt(c.kind.promptLabel) || '').trim();
+      closeCombo(id);
+      if (!name) return;
+      await c.kind.add(name);
+      setCombo(id, name);
+    });
+    dd.appendChild(addNew);
+  }
+
+  const none = document.createElement('div');
+  none.className = 'tag-dropdown-item' + (c.value ? '' : ' selected');
   none.textContent = '— None —';
-  selectEl.appendChild(none);
-  merged.forEach(v => {
-    const opt = document.createElement('option');
-    opt.value = v;
-    opt.textContent = v;
-    selectEl.appendChild(opt);
-  });
+  none.addEventListener('click', () => { setCombo(id, ''); closeCombo(id); });
+  dd.appendChild(none);
 
-  selectEl.value = currentValue || '';
-  selectEl.dataset.prev = selectEl.value;
-}
+  // The current value is merged in even when it is no longer a listed option,
+  // so opening an older entry never silently drops what it already had.
+  const options = [...c.kind.getOptions()];
+  if (c.value && !options.includes(c.value)) options.push(c.value);
 
-// Wires the "+ Add New" sentinel: prompts for a new value, persists it, and
-// re-populates the select with it chosen. Reverts to the prior value on cancel.
-function setupDynamicSelect(selectEl, getOptions, ensureFn, promptLabel) {
-  selectEl.addEventListener('change', async () => {
-    if (selectEl.value !== '__add_new__') { selectEl.dataset.prev = selectEl.value; return; }
-    const name = (prompt(promptLabel) || '').trim();
-    if (name) {
-      await ensureFn(name);
-      populateSelect(selectEl, getOptions(), name);
-    } else {
-      selectEl.value = selectEl.dataset.prev || '';
-    }
+  options.sort((a, b) => a.localeCompare(b)).forEach(name => {
+    const item = document.createElement('div');
+    item.className = 'tag-dropdown-item' + (name === c.value ? ' selected' : '');
+    const label = document.createElement('span');
+    label.textContent = name;
+    item.appendChild(label);
+    item.addEventListener('click', () => { setCombo(id, name); closeCombo(id); });
+
+    if (c.kind.remove) item.appendChild(optionDeleteBtn(name, c.kind.usage(name), c.kind.remove, () => closeCombo(id)));
+    dd.appendChild(item);
   });
 }
 
-// Persists a newly-added type value (mirrors how new style tags are created).
+// The "✕" on a dropdown row. Always routes through the confirm modal, which
+// states how many entries lose the value before anything is removed.
+function optionDeleteBtn(name, used, remove, beforeConfirm) {
+  const del = document.createElement('button');
+  del.type = 'button';
+  del.className = 'dropdown-del';
+  del.textContent = '✕';
+  del.title = `Delete "${name}"`;
+  del.addEventListener('click', e => {
+    e.stopPropagation();
+    if (beforeConfirm) beforeConfirm();
+    confirmOptionDelete(name, used, () => remove(name));
+  });
+  return del;
+}
+
+// Shared by every place an option can be deleted (combo dropdowns, the Style
+// Tags dropdown, and the Settings lists) so the warning is written once.
+function confirmOptionDelete(name, used, run) {
+  const tail = used
+    ? `It will be removed from ${used} ${used === 1 ? 'entry' : 'entries'}.`
+    : 'No entries use it.';
+  confirm_(`Delete "${name}"? ${tail}`, run);
+}
+
+// Re-renders open combos after the option list changed, and clears the value
+// from any combo still showing something that was just deleted.
+function syncOptionUI(removed) {
+  Object.keys(combos).forEach(id => {
+    if (removed && combos[id].value === removed) setCombo(id, '');
+    else if (isComboOpen(id)) renderComboList(id);
+  });
+  renderTagList();
+  renderTypeList();
+  renderFoundViaList();
+}
+
+// ─── Option mutations (one place per list, shared by combos and Settings) ────
 async function ensureType(value) {
   const val = (value || '').trim();
   if (!val || state.types.some(t => t.toLowerCase() === val.toLowerCase())) return;
   state.types.push(val);
   try { await api.post('/api/types', { name: val }); } catch { /* already exists server-side */ }
+  syncOptionUI();
 }
 
 async function ensureFoundVia(value) {
@@ -154,6 +259,73 @@ async function ensureFoundVia(value) {
   if (!val || state.foundVia.some(t => t.toLowerCase() === val.toLowerCase())) return;
   state.foundVia.push(val);
   try { await api.post('/api/found-via', { name: val }); } catch { /* already exists server-side */ }
+  syncOptionUI();
+}
+
+async function deleteTypeOption(name) {
+  const res = await api.del(`/api/types/${encodeURIComponent(name)}`);
+  state.types = res.types;
+  state.entries.forEach(e => { if (e.type === name) e.type = null; });
+  if (state.filters.type === name) state.filters.type = '';
+  syncOptionUI(name);
+  renderBrowse();
+}
+
+async function renameTypeOption(oldName, newName) {
+  const res = await api.put(`/api/types/${encodeURIComponent(oldName)}`, { newName });
+  state.types = res.types;
+  state.entries.forEach(e => { if (e.type === oldName) e.type = newName; });
+  if (state.filters.type === oldName) state.filters.type = newName;
+  Object.keys(combos).forEach(id => { if (combos[id].value === oldName) setCombo(id, newName); });
+  syncOptionUI();
+  renderBrowse();
+}
+
+async function deleteFoundViaOption(name) {
+  const res = await api.del(`/api/found-via/${encodeURIComponent(name)}`);
+  state.foundVia = res.foundVia;
+  state.entries.forEach(e => { if (e.found_via === name) e.found_via = ''; });
+  syncOptionUI(name);
+}
+
+async function renameFoundViaOption(oldName, newName) {
+  const res = await api.put(`/api/found-via/${encodeURIComponent(oldName)}`, { newName });
+  state.foundVia = res.foundVia;
+  state.entries.forEach(e => { if (e.found_via === oldName) e.found_via = newName; });
+  Object.keys(combos).forEach(id => { if (combos[id].value === oldName) setCombo(id, newName); });
+  syncOptionUI();
+}
+
+function tagUsage(name) { return state.entries.filter(e => (e.style_tags || []).includes(name)).length; }
+
+async function deleteTagOption(name) {
+  const res = await api.del(`/api/tags/${encodeURIComponent(name)}`);
+  state.tags = res.tags;
+  state.entries.forEach(e => { e.style_tags = (e.style_tags || []).filter(t => t !== name); });
+  state.filters.tags = state.filters.tags.filter(t => t !== name);
+  [formSelectedTags, detailTags].forEach(arr => {
+    const i = arr.indexOf(name);
+    if (i !== -1) arr.splice(i, 1);
+  });
+  renderFormTagPills();
+  renderDetailTagPills();
+  renderTagList();
+  renderBrowse();
+}
+
+async function renameTagOption(oldName, newName) {
+  const res = await api.put(`/api/tags/${encodeURIComponent(oldName)}`, { newName });
+  state.tags = res.tags;
+  state.entries.forEach(e => { e.style_tags = (e.style_tags || []).map(t => t === oldName ? newName : t); });
+  state.filters.tags = state.filters.tags.map(t => t === oldName ? newName : t);
+  [formSelectedTags, detailTags].forEach(arr => {
+    const i = arr.indexOf(oldName);
+    if (i !== -1) arr[i] = newName;
+  });
+  renderFormTagPills();
+  renderDetailTagPills();
+  renderTagList();
+  renderBrowse();
 }
 
 // ═══════════════════════════════════════════ NAVIGATION ══
@@ -223,16 +395,6 @@ function setupSearch() {
 
 // ═══════════════════════════════════════════ FILTERS ══
 function setupFilters() {
-  document.getElementById('filter-type').addEventListener('change', e => {
-    state.filters.type = e.target.value;
-    renderBrowse();
-  });
-
-  document.getElementById('filter-boards').addEventListener('change', e => {
-    state.filters.board = e.target.value;
-    renderBrowse();
-  });
-
   document.getElementById('filter-fav').addEventListener('click', () => {
     state.filters.favorite = !state.filters.favorite;
     renderBrowse();
@@ -257,24 +419,41 @@ function setupFilters() {
     renderBrowse();
   });
 
-  // Close the tag panel when clicking outside it
+  // Close any open filter panel when clicking outside it
   document.addEventListener('click', e => {
-    const dd = document.getElementById('filter-tags-dd');
-    if (dd.open && !dd.contains(e.target)) dd.open = false;
+    document.querySelectorAll('.filter-dropdown[open]').forEach(dd => {
+      if (!dd.contains(e.target)) dd.open = false;
+    });
+  });
+}
+
+// A single-choice filter that reuses the Style Tags pill markup, so every pill
+// in the bar has identical dimensions and states.
+function renderSingleFilter(ddId, listId, labelId, allLabel, options, current, onPick) {
+  const dd = document.getElementById(ddId);
+  const list = document.getElementById(listId);
+  const chosen = options.find(o => o.value === current);
+  document.getElementById(labelId).textContent = chosen ? chosen.label : allLabel;
+  dd.classList.toggle('active', !!chosen);
+
+  list.innerHTML = '';
+  [{ value: '', label: allLabel }, ...options].forEach(o => {
+    const item = document.createElement('button');
+    item.type = 'button';
+    item.className = 'filter-option' + (o.value === current ? ' selected' : '');
+    item.textContent = o.label;
+    item.addEventListener('click', () => { dd.open = false; onPick(o.value); });
+    list.appendChild(item);
   });
 }
 
 function renderTypeFilter() {
-  const sel = document.getElementById('filter-type');
-  sel.innerHTML = '<option value="">All Types</option>';
-  [...state.types].sort((a, b) => a.localeCompare(b)).forEach(t => {
-    const opt = document.createElement('option');
-    opt.value = t;
-    opt.textContent = t;
-    sel.appendChild(opt);
-  });
-  sel.value = state.filters.type;
-  sel.classList.toggle('active', !!state.filters.type);
+  renderSingleFilter(
+    'filter-type-dd', 'filter-type-list', 'filter-type-label', 'All Types',
+    [...state.types].sort((a, b) => a.localeCompare(b)).map(t => ({ value: t, label: t })),
+    state.filters.type,
+    v => { state.filters.type = v; renderBrowse(); }
+  );
 }
 
 function renderTagFilters() {
@@ -307,17 +486,14 @@ function renderTagFilters() {
 }
 
 function renderBoardFilters() {
-  const sel = document.getElementById('filter-boards');
-  sel.style.display = state.boards.length === 0 ? 'none' : '';
-  sel.innerHTML = '<option value="">All Boards</option>';
-  state.boards.forEach(b => {
-    const opt = document.createElement('option');
-    opt.value = b.id;
-    opt.textContent = b.name;
-    sel.appendChild(opt);
-  });
-  sel.value = state.filters.board;
-  sel.classList.toggle('active', !!state.filters.board);
+  const dd = document.getElementById('filter-boards-dd');
+  dd.style.display = state.boards.length === 0 ? 'none' : '';
+  renderSingleFilter(
+    'filter-boards-dd', 'filter-boards-list', 'filter-boards-label', 'All Boards',
+    state.boards.map(b => ({ value: b.id, label: b.name })),
+    state.filters.board,
+    v => { state.filters.board = v; renderBrowse(); }
+  );
 }
 
 // ═══════════════════════════════════════════ BROWSE ══
@@ -355,10 +531,35 @@ function renderBrowse() {
     (f.type || f.tags.length || f.board || f.favorite) ? '' : 'none';
 
   const filtered = applyFilters(state.entries).sort((a, b) => new Date(b.date_added) - new Date(a.date_added));
-  renderGrid(document.getElementById('entry-grid'), filtered, true);
+  const grid = document.getElementById('entry-grid');
+  const list = document.getElementById('entry-list');
+  const gallery = state.layout === 'gallery';
+
+  if (gallery) renderGrid(grid, filtered, true);
+  else renderList(list, filtered, true);
+
+  grid.style.display = gallery && filtered.length ? '' : 'none';
+  list.style.display = !gallery && filtered.length ? '' : 'none';
   document.getElementById('browse-empty').style.display = filtered.length === 0 ? '' : 'none';
-  document.getElementById('entry-grid').style.display = filtered.length === 0 ? 'none' : '';
   refreshStats();
+}
+
+// ═══════════════════════════════════════════ LAYOUT SWITCH ══
+function setupLayoutSwitch() {
+  document.getElementById('view-switch').addEventListener('click', e => {
+    const btn = e.target.closest('.view-switch-btn');
+    if (!btn || btn.dataset.layout === state.layout) return;
+    state.layout = btn.dataset.layout;
+    localStorage.setItem('omniview-layout', state.layout);
+    syncLayoutButtons();
+    renderBrowse();
+  });
+  syncLayoutButtons();
+}
+
+function syncLayoutButtons() {
+  document.querySelectorAll('.view-switch-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.layout === state.layout));
 }
 
 function renderGrid(gridEl, entries, clickOpensDetail = true) {
@@ -386,7 +587,7 @@ function createCard(entry, clickOpensDetail) {
     img.loading = 'lazy';
     thumb.appendChild(img);
   } else {
-    thumb.innerHTML = `<div class="thumb-placeholder"><svg width="28" height="28" viewBox="0 0 28 28" fill="none"><rect x="2" y="5" width="24" height="18" rx="3" stroke="currentColor" stroke-width="1.5"/><circle cx="9" cy="12" r="2" stroke="currentColor" stroke-width="1.3"/><path d="M2 19l7-5 4 3.5 3.5-2.5 9.5 6" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg><span>No screenshot</span></div>`;
+    thumb.innerHTML = `<div class="thumb-placeholder">${PLACEHOLDER_SVG}<span>No screenshot</span></div>`;
   }
 
   // Overlay: fav + check
@@ -454,25 +655,114 @@ function cleanUrl(url) {
   try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return url; }
 }
 
-// ═══════════════════════════════════════════ BULK ══
-function setupBulk() {
-  document.getElementById('bulk-toggle').addEventListener('click', () => {
-    state.bulkMode = !state.bulkMode;
-    state.selectedIds.clear();
-    document.getElementById('bulk-toggle').classList.toggle('active', state.bulkMode);
-    document.getElementById('bulk-bar').style.display = state.bulkMode ? '' : 'none';
-    document.querySelector('.entry-grid').classList.toggle('bulk-mode', state.bulkMode);
-    renderBrowse();
+// ═══════════════════════════════════════════ LIST VIEW ══
+function renderList(listEl, entries, clickOpensDetail = true) {
+  listEl.innerHTML = '';
+  entries.forEach(entry => listEl.appendChild(createRow(entry, clickOpensDetail)));
+}
+
+function createRow(entry, clickOpensDetail) {
+  const row = document.createElement('div');
+  row.className = 'entry-row';
+  row.dataset.id = entry.id;
+  if (state.selectedIds.has(entry.id)) row.classList.add('selected');
+
+  const check = document.createElement('div');
+  check.className = 'row-check';
+  check.textContent = '✓';
+
+  const thumb = document.createElement('div');
+  thumb.className = 'row-thumb';
+  if (entry.screenshot) {
+    const img = document.createElement('img');
+    img.src = `/uploads/${entry.screenshot}`;
+    img.alt = '';
+    img.loading = 'lazy';
+    thumb.appendChild(img);
+  } else {
+    thumb.classList.add('empty');
+    thumb.innerHTML = PLACEHOLDER_SVG;
+  }
+
+  const main = document.createElement('div');
+  main.className = 'row-main';
+  const title = document.createElement('div');
+  title.className = 'row-title';
+  title.textContent = entry.title || cleanUrl(entry.url);
+  const url = document.createElement('div');
+  url.className = 'row-url';
+  url.textContent = cleanUrl(entry.url);
+  url.title = entry.url;
+  main.append(title, url);
+
+  const type = document.createElement('div');
+  type.className = 'row-type';
+  if (entry.type) {
+    const badge = document.createElement('span');
+    badge.className = 'type-badge';
+    badge.textContent = entry.type;
+    type.appendChild(badge);
+  }
+
+  const tags = document.createElement('div');
+  tags.className = 'row-tags';
+  const list = entry.style_tags || [];
+  list.slice(0, 3).forEach(t => {
+    const s = document.createElement('span');
+    s.className = 'card-tag';
+    s.textContent = t;
+    tags.appendChild(s);
+  });
+  if (list.length > 3) {
+    const s = document.createElement('span');
+    s.className = 'card-tag';
+    s.textContent = `+${list.length - 3}`;
+    tags.appendChild(s);
+  }
+
+  const actions = document.createElement('div');
+  actions.className = 'row-actions';
+  const fav = document.createElement('button');
+  fav.className = 'card-fav' + (entry.favorite ? ' is-fav' : '');
+  fav.textContent = '♥';
+  fav.title = entry.favorite ? 'Unfavorite' : 'Favorite';
+  fav.addEventListener('click', async e => { e.stopPropagation(); await toggleFavorite(entry.id); });
+  const open = document.createElement('a');
+  open.className = 'row-open';
+  open.href = entry.url;
+  open.target = '_blank';
+  open.rel = 'noopener';
+  open.title = 'Open source';
+  open.innerHTML = '<svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M5 2H2v9h9V8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M7.5 1.5H11.5V5.5M11.5 1.5L6 7" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  open.addEventListener('click', e => e.stopPropagation());
+  actions.append(fav, open);
+
+  row.append(check, thumb, main, type, tags, actions);
+
+  row.addEventListener('click', () => {
+    if (state.bulkMode) { toggleSelect(entry.id, row); return; }
+    if (clickOpensDetail) openDetail(entry.id);
   });
 
-  document.getElementById('bulk-cancel').addEventListener('click', () => {
-    state.bulkMode = false;
-    state.selectedIds.clear();
-    document.getElementById('bulk-toggle').classList.remove('active');
-    document.getElementById('bulk-bar').style.display = 'none';
-    document.querySelector('.entry-grid').classList.remove('bulk-mode');
-    renderBrowse();
-  });
+  return row;
+}
+
+// ═══════════════════════════════════════════ BULK ══
+// Bulk mode paints both layouts, so every entry point goes through here.
+function setBulkMode(on) {
+  state.bulkMode = on;
+  state.selectedIds.clear();
+  document.getElementById('bulk-toggle').classList.toggle('active', on);
+  document.getElementById('bulk-bar').style.display = on ? '' : 'none';
+  document.getElementById('entry-grid').classList.toggle('bulk-mode', on);
+  document.getElementById('entry-list').classList.toggle('bulk-mode', on);
+  updateBulkCount();
+  renderBrowse();
+}
+
+function setupBulk() {
+  document.getElementById('bulk-toggle').addEventListener('click', () => setBulkMode(!state.bulkMode));
+  document.getElementById('bulk-cancel').addEventListener('click', () => setBulkMode(false));
 
   document.getElementById('bulk-apply-tag').addEventListener('click', async () => {
     const tag = document.getElementById('bulk-tag-select').value;
@@ -489,13 +779,7 @@ function setupBulk() {
     confirm_(`Delete ${state.selectedIds.size} selected entries? This cannot be undone.`, async () => {
       await api.post('/api/entries/bulk', { ids: [...state.selectedIds], action: 'delete' });
       state.entries = await api.get('/api/entries');
-      state.selectedIds.clear();
-      state.bulkMode = false;
-      document.getElementById('bulk-toggle').classList.remove('active');
-      document.getElementById('bulk-bar').style.display = 'none';
-      document.querySelector('.entry-grid').classList.remove('bulk-mode');
-      updateBulkCount();
-      renderBrowse();
+      setBulkMode(false);
     });
   });
 }
@@ -634,10 +918,39 @@ function openBoardPicker(board) {
     list.innerHTML = '<div class="board-picker-empty">Every entry is already on this board.</div>';
   } else {
     available.forEach(entry => {
-      const label = document.createElement('label');
-      label.className = 'checkbox-label';
-      label.innerHTML = `<input type="checkbox" value="${entry.id}"><span class="checkmark"></span>${escHtml(cleanUrl(entry.url))}`;
-      list.appendChild(label);
+      const card = document.createElement('label');
+      card.className = 'picker-card';
+
+      const box = document.createElement('input');
+      box.type = 'checkbox';
+      box.value = entry.id;
+      box.addEventListener('change', () => card.classList.toggle('selected', box.checked));
+
+      const thumb = document.createElement('div');
+      thumb.className = 'picker-thumb';
+      if (entry.screenshot) {
+        const img = document.createElement('img');
+        img.src = `/uploads/${entry.screenshot}`;
+        img.alt = '';
+        img.loading = 'lazy';
+        thumb.appendChild(img);
+      } else {
+        thumb.classList.add('empty');
+        thumb.innerHTML = PLACEHOLDER_SVG;
+      }
+
+      // Title when there is one, otherwise the source URL.
+      const name = document.createElement('div');
+      name.className = 'picker-title';
+      name.textContent = entry.title || cleanUrl(entry.url);
+      name.title = entry.url;
+
+      const tick = document.createElement('span');
+      tick.className = 'picker-tick';
+      tick.textContent = '✓';
+
+      card.append(box, thumb, name, tick);
+      list.appendChild(card);
     });
   }
 
@@ -676,9 +989,9 @@ function openAddForm(entry) {
   // Reset form
   document.getElementById('f-title').value = entry ? (entry.title || '') : '';
   document.getElementById('f-url').value = entry ? entry.url : '';
-  populateSelect(document.getElementById('f-type'), state.types, entry ? (entry.type || '') : '');
-  document.getElementById('f-color').value = entry ? (entry.color || '') : '';
-  populateSelect(document.getElementById('f-found-via'), state.foundVia, entry ? (entry.found_via || '') : '');
+  setCombo('f-type', entry ? (entry.type || '') : '');
+  setCombo('f-color', entry ? (entry.color || '') : '');
+  setCombo('f-found-via', entry ? (entry.found_via || '') : '');
   document.getElementById('f-note').value = entry ? (entry.note || '') : '';
   document.getElementById('f-favorite').checked = entry ? !!entry.favorite : false;
   document.getElementById('edit-entry-id').value = entry ? entry.id : '';
@@ -772,9 +1085,9 @@ function setupAddForm() {
     const payload = {
       title: document.getElementById('f-title').value.trim(),
       url,
-      type: document.getElementById('f-type').value || null,
-      color: document.getElementById('f-color').value || null,
-      found_via: document.getElementById('f-found-via').value,
+      type: comboValue('f-type') || null,
+      color: comboValue('f-color') || null,
+      found_via: comboValue('f-found-via'),
       note: document.getElementById('f-note').value.trim(),
       favorite: document.getElementById('f-favorite').checked,
       style_tags: formSelectedTags,
@@ -916,7 +1229,9 @@ function renderTagDropdown(input, dropdown, tagsArr, onUpdate) {
   available.forEach(tag => {
     const item = document.createElement('div');
     item.className = 'tag-dropdown-item';
-    item.textContent = tag;
+    const label = document.createElement('span');
+    label.textContent = tag;
+    item.appendChild(label);
     item.addEventListener('mousedown', e => {
       e.preventDefault();
       tagsArr.push(tag);
@@ -924,6 +1239,12 @@ function renderTagDropdown(input, dropdown, tagsArr, onUpdate) {
       dropdown.style.display = 'none';
       onUpdate();
     });
+
+    const del = optionDeleteBtn(tag, tagUsage(tag), deleteTagOption, () => { dropdown.style.display = 'none'; });
+    // The row itself selects on mousedown, so the ✕ must swallow that too.
+    del.addEventListener('mousedown', e => { e.preventDefault(); e.stopPropagation(); });
+    item.appendChild(del);
+
     dropdown.appendChild(item);
   });
 
@@ -972,9 +1293,9 @@ function setupDetailModal() {
     const payload = {
       title: document.getElementById('detail-title').value.trim(),
       url: state.detailEntry.url,
-      type: document.getElementById('detail-type').value || null,
-      color: document.getElementById('detail-color').value || null,
-      found_via: document.getElementById('detail-found-via').value,
+      type: comboValue('detail-type') || null,
+      color: comboValue('detail-color') || null,
+      found_via: comboValue('detail-found-via'),
       note: document.getElementById('detail-note').value.trim(),
       favorite: state.detailEntry.favorite,
       style_tags: detailTags,
@@ -1013,9 +1334,9 @@ async function openDetail(id) {
   document.getElementById('detail-url').textContent = entry.url;
   document.getElementById('detail-fav').classList.toggle('is-fav', !!entry.favorite);
   document.getElementById('detail-title').value = entry.title || '';
-  populateSelect(document.getElementById('detail-type'), state.types, entry.type || '');
-  document.getElementById('detail-color').value = entry.color || '';
-  populateSelect(document.getElementById('detail-found-via'), state.foundVia, entry.found_via || '');
+  setCombo('detail-type', entry.type || '');
+  setCombo('detail-color', entry.color || '');
+  setCombo('detail-found-via', entry.found_via || '');
   document.getElementById('detail-note').value = entry.note || '';
   document.getElementById('detail-date').textContent = new Date(entry.date_added).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 
@@ -1132,64 +1453,10 @@ function renderSettings() {
 }
 
 function renderTagList() {
-  const list = document.getElementById('tag-list');
-  list.innerHTML = '';
-  [...state.tags].sort().forEach(tag => {
-    const item = document.createElement('div');
-    item.className = 'tag-list-item';
-
-    const nameSpan = document.createElement('span');
-    nameSpan.textContent = tag;
-
-    const actions = document.createElement('div');
-    actions.className = 'tag-list-actions';
-
-    const renameBtn = document.createElement('button');
-    renameBtn.className = 'tag-action-btn';
-    renameBtn.textContent = 'Rename';
-    renameBtn.addEventListener('click', () => {
-      // Inline rename
-      nameSpan.style.display = 'none';
-      const inp = document.createElement('input');
-      inp.value = tag;
-      item.insertBefore(inp, actions);
-      inp.focus();
-      const save = async () => {
-        const newName = inp.value.trim();
-        if (newName && newName !== tag) {
-          const res = await api.put(`/api/tags/${encodeURIComponent(tag)}`, { newName });
-          state.tags = res.tags;
-          state.entries.forEach(e => {
-            e.style_tags = (e.style_tags || []).map(t => t === tag ? newName : t);
-          });
-        }
-        inp.remove();
-        nameSpan.style.display = '';
-        renderTagList();
-        renderTagFilters();
-      };
-      inp.addEventListener('blur', save);
-      inp.addEventListener('keydown', e => { if (e.key === 'Enter') save(); if (e.key === 'Escape') { inp.remove(); nameSpan.style.display = ''; } });
-    });
-
-    const delBtn = document.createElement('button');
-    delBtn.className = 'tag-action-btn del';
-    delBtn.textContent = 'Delete';
-    delBtn.addEventListener('click', () => {
-      confirm_(`Delete tag "${tag}"? It will be removed from all entries.`, async () => {
-        const res = await api.del(`/api/tags/${encodeURIComponent(tag)}`);
-        state.tags = res.tags;
-        state.entries.forEach(e => { e.style_tags = (e.style_tags || []).filter(t => t !== tag); });
-        renderTagList();
-        renderTagFilters();
-      });
-    });
-
-    actions.appendChild(renameBtn);
-    actions.appendChild(delBtn);
-    item.appendChild(nameSpan);
-    item.appendChild(actions);
-    list.appendChild(item);
+  renderManagedList('tag-list', 'tag-count', state.tags, {
+    usage: tagUsage,
+    onRename: renameTagOption,
+    onDelete: deleteTagOption
   });
 }
 
@@ -1207,10 +1474,9 @@ function setupOptionAdder(inputId, buttonId, getOptions, ensureFn, onAdded) {
   input.addEventListener('keydown', e => { if (e.key === 'Enter') add(); });
 }
 
-// Delete-only manager list, shared by the Entry Types and Found Via sections.
-// The confirm message states how many entries lose the value, since unlike a
-// style tag these live in a single-value field that gets cleared outright.
-function renderManagedList(listId, items, countUsage, onDelete) {
+// Rename + delete manager list, shared by all three Settings sections.
+function renderManagedList(listId, countId, items, opts) {
+  document.getElementById(countId).textContent = items.length;
   const list = document.getElementById(listId);
   list.innerHTML = '';
   if (items.length === 0) {
@@ -1225,7 +1491,7 @@ function renderManagedList(listId, items, countUsage, onDelete) {
     nameSpan.textContent = name;
     item.appendChild(nameSpan);
 
-    const used = countUsage(name);
+    const used = opts.usage(name);
     if (used) {
       const hint = document.createElement('small');
       hint.className = 'tag-list-use';
@@ -1235,49 +1501,60 @@ function renderManagedList(listId, items, countUsage, onDelete) {
 
     const actions = document.createElement('div');
     actions.className = 'tag-list-actions';
+
+    const renameBtn = document.createElement('button');
+    renameBtn.className = 'tag-action-btn';
+    renameBtn.textContent = 'Rename';
+    renameBtn.addEventListener('click', () => {
+      nameSpan.style.display = 'none';
+      const inp = document.createElement('input');
+      inp.value = name;
+      item.insertBefore(inp, actions);
+      inp.focus();
+      inp.select();
+      // Enter and blur both commit, so a `done` latch keeps the rename from
+      // firing twice when Enter moves focus away.
+      let done = false;
+      const finish = async commit => {
+        if (done) return;
+        done = true;
+        const newName = inp.value.trim();
+        inp.remove();
+        nameSpan.style.display = '';
+        if (commit && newName && newName !== name) await opts.onRename(name, newName);
+      };
+      inp.addEventListener('blur', () => finish(true));
+      inp.addEventListener('keydown', e => {
+        if (e.key === 'Enter') finish(true);
+        if (e.key === 'Escape') finish(false);
+      });
+    });
+
     const delBtn = document.createElement('button');
     delBtn.className = 'tag-action-btn del';
     delBtn.textContent = 'Delete';
-    delBtn.addEventListener('click', () => {
-      const tail = used
-        ? `It will be cleared from ${used} ${used === 1 ? 'entry' : 'entries'}.`
-        : 'No entries use it.';
-      confirm_(`Delete "${name}"? ${tail}`, () => onDelete(name));
-    });
-    actions.appendChild(delBtn);
+    delBtn.addEventListener('click', () => confirmOptionDelete(name, used, () => opts.onDelete(name)));
+
+    actions.append(renameBtn, delBtn);
     item.appendChild(actions);
     list.appendChild(item);
   });
 }
 
 function renderTypeList() {
-  renderManagedList(
-    'type-list',
-    state.types,
-    name => state.entries.filter(e => e.type === name).length,
-    async name => {
-      const res = await api.del(`/api/types/${encodeURIComponent(name)}`);
-      state.types = res.types;
-      state.entries.forEach(e => { if (e.type === name) e.type = null; });
-      if (state.filters.type === name) state.filters.type = '';
-      renderTypeList();
-      renderBrowse();
-    }
-  );
+  renderManagedList('type-list', 'type-count', state.types, {
+    usage: COMBO_KINDS.type.usage,
+    onRename: renameTypeOption,
+    onDelete: deleteTypeOption
+  });
 }
 
 function renderFoundViaList() {
-  renderManagedList(
-    'found-via-list',
-    state.foundVia,
-    name => state.entries.filter(e => e.found_via === name).length,
-    async name => {
-      const res = await api.del(`/api/found-via/${encodeURIComponent(name)}`);
-      state.foundVia = res.foundVia;
-      state.entries.forEach(e => { if (e.found_via === name) e.found_via = ''; });
-      renderFoundViaList();
-    }
-  );
+  renderManagedList('found-via-list', 'found-via-count', state.foundVia, {
+    usage: COMBO_KINDS.foundVia.usage,
+    onRename: renameFoundViaOption,
+    onDelete: deleteFoundViaOption
+  });
 }
 
 // ═══════════════════════════════════════════ STATS ══

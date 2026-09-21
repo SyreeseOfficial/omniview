@@ -325,6 +325,19 @@ app.post('/api/types', (req, res) => {
   res.status(201).json({ types: db.types });
 });
 
+app.put('/api/types/:name', (req, res) => {
+  const { newName } = req.body;
+  if (!newName) return res.status(400).json({ error: 'newName required' });
+  const db = readDB();
+  const oldName = decodeURIComponent(req.params.name);
+  const idx = db.types.findIndex(t => t === oldName);
+  if (idx === -1) return res.status(404).json({ error: 'Type not found' });
+  db.types[idx] = newName.trim();
+  db.entries.forEach(e => { if (e.type === oldName) e.type = newName.trim(); });
+  writeDB(db);
+  res.json({ types: db.types });
+});
+
 app.delete('/api/types/:name', (req, res) => {
   const db = readDB();
   const name = decodeURIComponent(req.params.name);
@@ -351,6 +364,19 @@ app.post('/api/found-via', (req, res) => {
   db.foundVia.push(normalized);
   writeDB(db);
   res.status(201).json({ foundVia: db.foundVia });
+});
+
+app.put('/api/found-via/:name', (req, res) => {
+  const { newName } = req.body;
+  if (!newName) return res.status(400).json({ error: 'newName required' });
+  const db = readDB();
+  const oldName = decodeURIComponent(req.params.name);
+  const idx = db.foundVia.findIndex(t => t === oldName);
+  if (idx === -1) return res.status(404).json({ error: 'Found via option not found' });
+  db.foundVia[idx] = newName.trim();
+  db.entries.forEach(e => { if (e.found_via === oldName) e.found_via = newName.trim(); });
+  writeDB(db);
+  res.json({ foundVia: db.foundVia });
 });
 
 app.delete('/api/found-via/:name', (req, res) => {

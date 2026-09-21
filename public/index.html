@@ -69,6 +69,14 @@
       <div class="view-title-row">
         <h1 class="view-title">Browse</h1>
         <div class="header-actions">
+          <div class="view-switch" id="view-switch">
+            <button class="view-switch-btn active" data-layout="gallery" title="Gallery view">
+              <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="9" y="1" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="1" y="9" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="9" y="9" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/></svg>
+            </button>
+            <button class="view-switch-btn" data-layout="list" title="List view">
+              <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><rect x="1" y="2" width="3" height="3" rx="0.5" stroke="currentColor" stroke-width="1.4"/><rect x="1" y="6.5" width="3" height="3" rx="0.5" stroke="currentColor" stroke-width="1.4"/><rect x="1" y="11" width="3" height="3" rx="0.5" stroke="currentColor" stroke-width="1.4"/><line x1="6" y1="3.5" x2="15" y2="3.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><line x1="6" y1="8" x2="15" y2="8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><line x1="6" y1="12.5" x2="15" y2="12.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+            </button>
+          </div>
           <button class="btn-icon" id="bulk-toggle" title="Multi-select">
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="4" width="3" height="3" rx="0.5" stroke="currentColor" stroke-width="1.4"/><rect x="1" y="9" width="3" height="3" rx="0.5" stroke="currentColor" stroke-width="1.4"/><line x1="6" y1="5.5" x2="15" y2="5.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><line x1="6" y1="10.5" x2="15" y2="10.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
           </button>
@@ -84,7 +92,15 @@
 
       <!-- Filters -->
       <div class="filter-bar">
-        <select class="filter-select" id="filter-type"></select>
+        <details class="filter-dropdown" id="filter-type-dd">
+          <summary>
+            <span id="filter-type-label">All Types</span>
+            <svg class="filter-caret" width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 4l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </summary>
+          <div class="filter-panel">
+            <div class="filter-check-list" id="filter-type-list"></div>
+          </div>
+        </details>
 
         <details class="filter-dropdown" id="filter-tags-dd">
           <summary>
@@ -104,7 +120,15 @@
           </div>
         </details>
 
-        <select class="filter-select" id="filter-boards"></select>
+        <details class="filter-dropdown" id="filter-boards-dd">
+          <summary>
+            <span id="filter-boards-label">All Boards</span>
+            <svg class="filter-caret" width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 4l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </summary>
+          <div class="filter-panel">
+            <div class="filter-check-list" id="filter-boards-list"></div>
+          </div>
+        </details>
 
         <button class="chip chip-fav" id="filter-fav">♥ Favorites</button>
 
@@ -125,6 +149,7 @@
 
     <div class="grid-container">
       <div class="entry-grid" id="entry-grid"></div>
+      <div class="entry-list" id="entry-list" style="display:none"></div>
       <div class="empty-state" id="browse-empty" style="display:none">
         <div class="empty-icon">🎨</div>
         <p>No entries yet. Add your first design reference.</p>
@@ -203,43 +228,29 @@
       <!-- Fields -->
       <div class="form-grid">
         <div class="form-group form-group-full">
-          <label for="f-title">Title</label>
-          <input type="text" id="f-title" placeholder="e.g. Google">
-        </div>
-
-        <div class="form-group form-group-full">
           <label for="f-url">URL <span class="required">*</span></label>
           <input type="url" id="f-url" placeholder="https://example.com" required>
           <div class="dupe-warning" id="dupe-warning" style="display:none">⚠ This URL is already in your library.</div>
         </div>
 
-        <div class="form-group">
-          <label for="f-type">Type</label>
-          <select id="f-type"></select>
+        <div class="form-group form-group-full">
+          <label for="f-title">Title</label>
+          <input type="text" id="f-title" placeholder="e.g. Google">
         </div>
 
         <div class="form-group">
-          <label for="f-color">Color</label>
-          <select id="f-color">
-            <option value="">— none —</option>
-            <option>Black</option>
-            <option>White</option>
-            <option>Gray</option>
-            <option>Red</option>
-            <option>Orange</option>
-            <option>Yellow</option>
-            <option>Green</option>
-            <option>Blue</option>
-            <option>Purple</option>
-            <option>Pink</option>
-            <option>Brown</option>
-            <option>Multicolor</option>
-          </select>
+          <label>Type</label>
+          <div class="combo" id="f-type"></div>
         </div>
 
         <div class="form-group">
-          <label for="f-found-via">Found via</label>
-          <select id="f-found-via"></select>
+          <label>Color</label>
+          <div class="combo" id="f-color"></div>
+        </div>
+
+        <div class="form-group">
+          <label>Found via</label>
+          <div class="combo" id="f-found-via"></div>
         </div>
 
         <div class="form-group form-group-full">
@@ -299,36 +310,54 @@
       </div>
 
       <div class="settings-section">
-        <h2 class="settings-heading">Style Tags</h2>
-        <div class="tag-manager">
-          <div class="tag-add-row">
-            <input type="text" id="new-tag-input" placeholder="New tag name…">
-            <button class="btn-primary" id="add-tag-btn">Add Tag</button>
+        <details class="settings-collapse">
+          <summary class="settings-heading">
+            Style Tags
+            <span class="settings-count" id="tag-count"></span>
+            <svg class="filter-caret" width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 4l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </summary>
+          <div class="tag-manager">
+            <div class="tag-add-row">
+              <input type="text" id="new-tag-input" placeholder="New tag name…">
+              <button class="btn-primary" id="add-tag-btn">Add Tag</button>
+            </div>
+            <div class="tag-list" id="tag-list"></div>
           </div>
-          <div class="tag-list" id="tag-list"></div>
-        </div>
+        </details>
       </div>
 
       <div class="settings-section">
-        <h2 class="settings-heading">Entry Types</h2>
-        <div class="tag-manager">
-          <div class="tag-add-row">
-            <input type="text" id="new-type-input" placeholder="New type name…">
-            <button class="btn-primary" id="add-type-btn">Add Type</button>
+        <details class="settings-collapse">
+          <summary class="settings-heading">
+            Entry Types
+            <span class="settings-count" id="type-count"></span>
+            <svg class="filter-caret" width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 4l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </summary>
+          <div class="tag-manager">
+            <div class="tag-add-row">
+              <input type="text" id="new-type-input" placeholder="New type name…">
+              <button class="btn-primary" id="add-type-btn">Add Type</button>
+            </div>
+            <div class="tag-list" id="type-list"></div>
           </div>
-          <div class="tag-list" id="type-list"></div>
-        </div>
+        </details>
       </div>
 
       <div class="settings-section">
-        <h2 class="settings-heading">Found Via Options</h2>
-        <div class="tag-manager">
-          <div class="tag-add-row">
-            <input type="text" id="new-found-via-input" placeholder="New “found via” name…">
-            <button class="btn-primary" id="add-found-via-btn">Add Option</button>
+        <details class="settings-collapse">
+          <summary class="settings-heading">
+            Found Via Options
+            <span class="settings-count" id="found-via-count"></span>
+            <svg class="filter-caret" width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 4l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </summary>
+          <div class="tag-manager">
+            <div class="tag-add-row">
+              <input type="text" id="new-found-via-input" placeholder="New “found via” name…">
+              <button class="btn-primary" id="add-found-via-btn">Add Option</button>
+            </div>
+            <div class="tag-list" id="found-via-list"></div>
           </div>
-          <div class="tag-list" id="found-via-list"></div>
-        </div>
+        </details>
       </div>
 
       <div class="settings-section">
@@ -379,26 +408,12 @@
 
         <div class="detail-field">
           <span class="detail-label">Type</span>
-          <select id="detail-type" class="detail-select"></select>
+          <div class="combo" id="detail-type"></div>
         </div>
 
         <div class="detail-field">
           <span class="detail-label">Color</span>
-          <select id="detail-color" class="detail-select">
-            <option value="">— none —</option>
-            <option>Black</option>
-            <option>White</option>
-            <option>Gray</option>
-            <option>Red</option>
-            <option>Orange</option>
-            <option>Yellow</option>
-            <option>Green</option>
-            <option>Blue</option>
-            <option>Purple</option>
-            <option>Pink</option>
-            <option>Brown</option>
-            <option>Multicolor</option>
-          </select>
+          <div class="combo" id="detail-color"></div>
         </div>
 
         <div class="detail-field">
@@ -419,7 +434,7 @@
 
         <div class="detail-field">
           <span class="detail-label">Found via</span>
-          <select id="detail-found-via" class="detail-select"></select>
+          <div class="combo" id="detail-found-via"></div>
         </div>
 
         <div class="detail-field">
@@ -443,9 +458,9 @@
 
 <!-- ═══════════════════════════════════════════ BOARD PICKER MODAL ══ -->
 <div class="modal-overlay" id="board-picker-overlay" style="display:none">
-  <div class="modal confirm-modal">
+  <div class="modal board-picker-modal">
     <h3>Add entries to board</h3>
-    <div class="board-picker-list" id="board-picker-list"></div>
+    <div class="board-picker-grid" id="board-picker-list"></div>
     <div class="confirm-actions">
       <button class="btn-ghost" id="board-picker-cancel">Cancel</button>
       <button class="btn-primary" id="board-picker-add">Add Selected</button>
