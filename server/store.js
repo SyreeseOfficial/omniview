@@ -7,8 +7,8 @@ const { AsyncLocalStorage } = require('async_hooks');
 
 // ─── Paths ───────────────────────────────────────────────────────────────────
 // Overridable so tests can point at a throwaway directory instead of the real library.
-const DB_PATH = process.env.OMNIVIEW_DB_PATH || path.join(__dirname, 'db', 'library.json');
-const UPLOADS_DIR = process.env.OMNIVIEW_UPLOADS_DIR || path.join(__dirname, 'uploads');
+const DB_PATH = process.env.OMNIVIEW_DB_PATH || path.join(__dirname, '..', 'db', 'library.json');
+const UPLOADS_DIR = process.env.OMNIVIEW_UPLOADS_DIR || path.join(__dirname, '..', 'uploads');
 const THUMBS_DIR = path.join(UPLOADS_DIR, 'thumbs');
 const FASHION_DB_PATH = path.join(path.dirname(DB_PATH), 'fashion.json');
 const BACKUP_DIR = path.join(path.dirname(DB_PATH), 'backups');
